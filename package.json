@@ -1,0 +1,14 @@
+{
+  "name": "flowweek",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node server.mjs",
+    "test": "node --test",
+    "format": "prettier --write index.html server.mjs package.json README.md js css tests"
+  },
+  "devDependencies": {
+    "prettier": "^3.9.9"
+  }
+}

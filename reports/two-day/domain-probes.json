@@ -1,0 +1,119 @@
+[
+  {
+    "id": "F01",
+    "title": "미완료 종료가 추가 자유시간을 적립한다",
+    "expected": "미완료로 남긴 작업을 자유시간의 순증가로 인정하지 않기",
+    "observed": {
+      "remaining": 65,
+      "credited": 35
+    },
+    "reproduced": true
+  },
+  {
+    "id": "F02",
+    "title": "만료된 조기종료 안내가 고정 일정을 가린다",
+    "expected": "11시 현재 미팅을 보여주기",
+    "observed": {
+      "view": {
+        "kind": "FREE",
+        "saved": 40
+      },
+      "expiredAt": "2026-09-28T01:00:00.000Z",
+      "now": "2026-09-28T02:00:00.000Z"
+    },
+    "reproduced": true
+  },
+  {
+    "id": "F03",
+    "title": "날짜가 바뀌면 밤새 잔 수면 기록이 주간에서 사라진다",
+    "expected": "오늘 00:00~07:30 수면 구간을 잘라 표시하기",
+    "observed": {
+      "stored": {
+        "id": "6ec37d3f-4c59-4cb5-8fe0-4664172f3b97",
+        "sourceId": "sleep-2026-09-27",
+        "sourceType": "SLEEP",
+        "title": "편안한 수면",
+        "start": "2026-09-27T14:00:00.000Z",
+        "end": "2026-09-27T22:30:00.000Z"
+      },
+      "visibleInWeek": false
+    },
+    "reproduced": true
+  },
+  {
+    "id": "F04",
+    "title": "다른 기회가 있는 일일 루틴도 마지막 기회로 판단한다",
+    "expected": "현재 창 안의 다른 수행 기회가 있으면 재배치 허용",
+    "observed": {
+      "rejected": true,
+      "feasibleAlternative": {
+        "id": "e250337d-3cf5-4319-93f6-f0453bb39bfe",
+        "sourceId": "bdc33d3c-0210-496d-a4a8-f91c3d8fe3e6",
+        "sourceType": "ROUTINE",
+        "title": "영어 듣기",
+        "date": "2026-09-29",
+        "assignedWorkMin": 20,
+        "reservedMin": 35,
+        "plannedStart": "2026-09-29T00:10:00.000Z",
+        "plannedEnd": "2026-09-29T00:45:00.000Z",
+        "focusLike": true,
+        "locked": false,
+        "critical": false
+      }
+    },
+    "reproduced": true
+  },
+  {
+    "id": "F05",
+    "title": "지난 시간의 보상 예약을 받아들인 뒤 미래 계획에서 사라진다",
+    "expected": "과거 시작 시각을 거절하거나 현재 이후로 보정하기",
+    "observed": {
+      "accepted": {
+        "id": "69af0fbc-e0e2-4b32-a328-ba1f2410058e",
+        "title": "영화 보기",
+        "sourceType": "REWARD",
+        "sourceId": "7e68e0ce-f42e-4379-aa50-d7a8ea8c9be1",
+        "assignedWorkMin": 0,
+        "reservedMin": 90,
+        "plannedStart": "2026-09-29T06:55:00.000Z",
+        "plannedEnd": "2026-09-29T08:25:00.000Z",
+        "locked": true
+      },
+      "futureBlocks": 0,
+      "unconfirmed": 0
+    },
+    "reproduced": true
+  },
+  {
+    "id": "F06",
+    "title": "겹치지 않는 과거 확인도 현재 실행 때문에 차단한다",
+    "expected": "현재 실행과 별개로 12~13시 기록을 확인하기",
+    "observed": {
+      "past": [
+        "2026-09-28T03:00:00.000Z",
+        "2026-09-28T04:00:00.000Z"
+      ],
+      "activeStart": "2026-09-28T04:10:00.000Z",
+      "rejected": true
+    },
+    "reproduced": true
+  },
+  {
+    "id": "F07",
+    "title": "마감 지난 할 일은 ACTIVE이지만 시작 후보에서 사라진다",
+    "expected": "원래 마감을 보존하면서 늦게라도 수행하는 선택 제공",
+    "observed": {
+      "active": true,
+      "selectableBeforeDeadlineEdit": false,
+      "selectableAfterEdit": true
+    },
+    "reproduced": true
+  },
+  {
+    "id": "F08",
+    "title": "작업 전환 실패 시 현재 실행과 요구량은 보존된다",
+    "expected": "실패 시 원래 실행 유지",
+    "observed": "정상: 원본 상태와 실행 보존",
+    "reproduced": true
+  }
+]

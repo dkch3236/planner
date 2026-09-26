@@ -1,0 +1,162 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap');
+:root {
+  font-family: 'DM Sans', 'Noto Sans KR', sans-serif;
+  color: #263d36;
+  background: #f5f6f2;
+  font-synthesis: none;
+  --green: #205f4c;
+  --muted: #819086;
+  --line: #e0e6df;
+  --paper: #fff;
+  --light: #eaf2e9;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+}
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+button {
+  cursor: pointer;
+}
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+button,
+a,
+input,
+select {
+  outline-offset: 4px;
+}
+button {
+  border: 0;
+  background: none;
+  color: inherit;
+}
+input,
+select,
+textarea {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: #fff;
+  color: inherit;
+}
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+h1 {
+  font-size: 32px;
+  letter-spacing: -1.3px;
+}
+h2 {
+  font-size: 21px;
+  letter-spacing: -0.6px;
+}
+h3 {
+  font-size: 16px;
+}
+p {
+  line-height: 1.8;
+}
+small {
+  color: var(--muted);
+}
+.muted {
+  color: var(--muted);
+}
+.eyebrow {
+  font-size: 11px;
+  letter-spacing: 2px;
+  font-weight: 700;
+  color: #8ca393;
+  text-transform: uppercase;
+}
+.row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.between {
+  justify-content: space-between;
+}
+.stack {
+  display: grid;
+  gap: 16px;
+}
+.hidden {
+  display: none !important;
+}
+.empty {
+  padding: 35px 16px;
+  color: var(--muted);
+  text-align: center;
+}
+.btn {
+  padding: 12px 18px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  font-size: 13px;
+  font-weight: 600;
+  background: white;
+}
+.btn:hover {
+  background: #f0f5ef;
+}
+.btn.primary {
+  background: var(--green);
+  border-color: var(--green);
+  color: white;
+}
+.btn.soft {
+  background: #edf3e9;
+  border-color: transparent;
+  color: var(--green);
+}
+.btn.danger {
+  color: #b35e49;
+}
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 9px;
+  background: #edf2ec;
+  color: #5b7963;
+  border-radius: 5px;
+  font-size: 11px;
+  white-space: nowrap;
+}
+.icon {
+  font-size: 19px;
+}
+.divider {
+  height: 1px;
+  background: var(--line);
+  margin: 20px 0;
+}
+.section-title {
+  margin: 25px 0 15px;
+}
+.text-button {
+  color: var(--green);
+  font-size: 12px;
+  padding: 8px;
+}
+.nowrap {
+  white-space: nowrap;
+}
+a {
+  color: var(--green);
+}
