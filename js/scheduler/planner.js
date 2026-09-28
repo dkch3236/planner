@@ -2,12 +2,11 @@ import { MIN, id, day, addDays, at, iso, ms, overlap } from '../utils/date.js';
 import { activeLeaves } from '../domain/todo.js';
 import { routineStatus, opportunities } from '../domain/routine.js';
 import { roomy, gaps, legalRange, freeBlocks } from './availability.js';
+import { wantsActivity, blockPreference, isRewardTodo } from '../domain/preferences.js';
 export function pressure(t, now) {
   const hours = Math.max(1, (ms(t.deadline) - now) / 3600000);
   return (
-    ({ MUST: 100, SHOULD: 45, OPTIONAL: 10 }[t.importance] || 0) +
-    t.desire * 4 +
-    (t.remainingWorkMin / hours) * 10
+    ({ MUST: 100, SHOULD: 45, OPTIONAL: 10 }[t.importance] || 0) + (t.remainingWorkMin / hours) * 10
   );
 }
 export function plan(s, now, { full = false } = {}) {
@@ -61,6 +60,8 @@ export function plan(s, now, { full = false } = {}) {
   const plannedRoutine = new Map();
   const capacityReservations = [];
   const register = (b) => {
+    if (b.sourceType === 'TODO')
+      b.rewardRole = isRewardTodo(s.todos.find((t) => t.id === b.sourceId));
     // Distant work has no public start/end. Temporary footprints verify window capacity.
     if (!b.plannedStart) {
       const source = (b.sourceType === 'TODO' ? s.todos : s.routines).find(
@@ -109,7 +110,12 @@ export function plan(s, now, { full = false } = {}) {
     const d = addDays(now, offset);
     const exact = [
       ...activeLeaves(s)
-        .filter((t) => t.timeConstraint === 'FIXED' && day(t.fixedStart) === d && !t.unavailableDates?.includes(d))
+        .filter(
+          (t) =>
+            t.timeConstraint === 'FIXED' &&
+            day(t.fixedStart) === d &&
+            !t.unavailableDates?.includes(d),
+        )
         .map((source) => ({ source, type: 'TODO' })),
       ...s.routines
         .filter((r) => r.status === 'ACTIVE' && r.constraint === 'FIXED' && routineNeeded(r, d))
@@ -254,14 +260,80 @@ export function plan(s, now, { full = false } = {}) {
         )
         .map((t) => ({ source: t, type: 'TODO', score: pressure(t, now) })),
     ].sort((a, b) => b.score - a.score);
-    for (const { source, type } of items) {
+    const previous = [
+      ...blocks.filter((b) => b.focusLike && b.plannedEnd && ms(b.plannedEnd) <= start),
+      ...s.sessions
+        .filter(
+          (x) =>
+            ['TODO', 'ROUTINE'].includes(x.sourceType) && x.date === d && ms(x.actualEnd) <= start,
+        )
+        .map((x) => ({ ...x, plannedEnd: x.actualEnd })),
+    ].sort((a, b) => ms(b.plannedEnd) - ms(a.plannedEnd))[0];
+    let lastPreference = previous ? blockPreference(s, previous) : null;
+    const pending = [...items];
+    let attempts = 0;
+    while (pending.length && attempts++ < 500) {
+      const urgent = (item) =>
+        item.type === 'TODO' &&
+        item.source.importance === 'MUST' &&
+        ms(item.source.deadline) < stop;
+      const earliest = (item) => {
+        const { source, type } = item,
+          range = legalRange(source, type, d);
+        let work =
+          type === 'TODO'
+            ? Math.min(s.settings.maxFocus, remaining.get(source.id) || 0)
+            : source.duration;
+        if (!urgent(item) && used + roomy(work) > capacity * s.settings.density) {
+          if (type === 'ROUTINE' && used + roomy(source.minimum) <= capacity * s.settings.density)
+            work = source.minimum;
+          else return Infinity;
+        }
+        if (offset >= 3) return Math.max(start, range[0]);
+        for (const [a, z] of gaps(start, stop, blocks)) {
+          const from = Math.max(
+            a,
+            range[0],
+            blocks.some((b) => b.focusLike && ms(b.plannedEnd) === a) ? a + 15 * MIN : a,
+          );
+          const until = Math.min(
+            range[1],
+            z - (blocks.some((b) => b.focusLike && ms(b.plannedStart) === z) ? 15 * MIN : 0),
+          );
+          if (from + roomy(work) * MIN <= until) return from;
+        }
+        return Infinity;
+      };
+      const starts = new Map(pending.map((item) => [item, earliest(item)]));
+      const first = Math.min(...starts.values());
+      if (offset < 3 && Number.isFinite(first)) {
+        const preceding = blocks
+          .filter(
+            (b) =>
+              b.focusLike && b.plannedEnd && ms(b.plannedEnd) <= first && day(b.plannedEnd) === d,
+          )
+          .sort((a, b) => ms(b.plannedEnd) - ms(a.plannedEnd))[0];
+        if (preceding) lastPreference = blockPreference(s, preceding);
+      }
+      pending.sort(
+        (a, b) =>
+          starts.get(a) - starts.get(b) ||
+          Number(urgent(b)) - Number(urgent(a)) ||
+          (lastPreference === null
+            ? 0
+            : Number(wantsActivity(a.source) === lastPreference) -
+              Number(wantsActivity(b.source) === lastPreference)) ||
+          b.score - a.score,
+      );
+      const item = pending.shift();
+      const { source, type } = item;
       const exact =
         type === 'TODO' ? source.timeConstraint === 'FIXED' : source.constraint === 'FIXED';
       const critical =
         type === 'TODO' && source.importance === 'MUST' && ms(source.deadline) < stop;
       let count = 0;
       while (
-        count++ < 30 &&
+        count++ < 1 &&
         (type === 'TODO' ? (remaining.get(source.id) || 0) > 0 : routineNeeded(source, d))
       ) {
         let work =
@@ -318,6 +390,8 @@ export function plan(s, now, { full = false } = {}) {
         };
         if (!register(block)) break;
         used += reserved;
+        lastPreference = wantsActivity(source);
+        if (type === 'TODO' && (remaining.get(source.id) || 0) > 0) pending.push(item);
         if (type === 'ROUTINE' || exact) break;
       }
     }

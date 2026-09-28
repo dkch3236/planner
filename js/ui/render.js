@@ -40,11 +40,8 @@ export function render(s) {
   if (routines) routines.open = !!routineOpen;
   window.scrollTo({ top: pageScroll, behavior: 'instant' });
   if (focus?.action) {
-    const match = [...document.querySelectorAll('[data-action]')].find(
-      (n) =>
-        n.dataset.action === focus.action &&
-        n.dataset.id === focus.id &&
-        n.dataset.outcome === focus.outcome,
+    const match = [...document.querySelectorAll('[data-action]')].find((n) =>
+      Object.entries(focus).every(([key, value]) => n.dataset[key] === value),
     );
     match?.focus({ preventScroll: true });
   }

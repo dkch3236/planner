@@ -12,6 +12,11 @@ export function resolveCurrentView(s, now) {
           ms(b.plannedEnd) > now,
       ),
     };
+  // Sleep belongs to its full interval, including the morning after its start date.
+  const sleep = s.sleepOccurrences.find(
+    (o) => o.status === 'PLANNED' && ms(o.plannedStart) <= now && ms(o.plannedEnd) > now,
+  );
+  if (sleep) return { kind: 'SLEEP_PROMPT', sleep };
   const current = s.livePlan.find(
     (b) =>
       b.plannedStart &&
@@ -29,10 +34,6 @@ export function resolveCurrentView(s, now) {
       !['FREE', 'SLEEP', 'PREP'].includes(b.sourceType),
   );
   if (next) return { kind: 'PREP', block: next };
-  const sleep = s.sleepOccurrences.find(
-    (o) => o.status === 'PLANNED' && ms(o.plannedStart) <= now && ms(o.plannedEnd) > now,
-  );
-  if (sleep) return { kind: 'SLEEP_PROMPT', sleep };
   return {
     kind: 'FREE',
     saved:

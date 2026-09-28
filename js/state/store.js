@@ -1,12 +1,13 @@
 import { settleFocus } from '../domain/focus.js';
 import { load, save } from './persistence.js';
-import { appNow, iso } from '../utils/date.js';
+import { appNow, iso, day } from '../utils/date.js';
 import { applyAction } from '../domain/actions.js';
 import { reconcile, replanFuture } from '../scheduler/replan.js';
 import { materialize } from '../domain/occurrences.js';
 export function createStore({ initialState = null } = {}) {
   let state = initialState ? structuredClone(initialState) : load();
   const persist = initialState ? () => {} : save;
+  let planningDay = day(appNow(state));
   if (!initialState) state.ui.virtualNow = null;
   if (!initialState && state.execution?.focusLike && state.execution.timerStatus !== 'PAUSED') {
     state.execution.timerStatus = 'PAUSED';
@@ -15,7 +16,8 @@ export function createStore({ initialState = null } = {}) {
   const listeners = new Set();
   if (!initialState) {
     reconcile(state, appNow(state));
-      replanFuture(state, appNow(state));
+    replanFuture(state, appNow(state), { full: state.planningPolicy !== 2 });
+    state.planningPolicy = 2;
   }
   const notify = () => listeners.forEach((fn) => fn(state));
   const commit = (next) => {
@@ -31,9 +33,11 @@ export function createStore({ initialState = null } = {}) {
       const next = structuredClone(state);
       Object.assign(next.ui, patch);
       if (patch.tab === 'week' || 'weekStart' in patch) {
-        materialize(next, appNow(next), next.ui.weekStart ? `${next.ui.weekStart}T12:00:00` : appNow(next));
-        reconcile(next, appNow(next));
-        replanFuture(next, appNow(next));
+        materialize(
+          next,
+          appNow(next),
+          next.ui.weekStart ? `${next.ui.weekStart}T12:00:00` : appNow(next),
+        );
       }
       commit(next);
     },
@@ -51,7 +55,16 @@ export function createStore({ initialState = null } = {}) {
       replanFuture(next, appNow(next));
       commit(next);
     },
-    tick: () => settleFocus(state.execution, Date.now(), appNow(state)),
+    tick: () => {
+      settleFocus(state.execution, Date.now(), appNow(state));
+      if (planningDay !== day(appNow(state))) {
+        const next = structuredClone(state);
+        reconcile(next, appNow(next));
+        replanFuture(next, appNow(next));
+        planningDay = day(appNow(next));
+        commit(next);
+      }
+    },
     flush: () => persist(state),
   };
 }

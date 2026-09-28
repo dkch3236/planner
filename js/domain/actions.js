@@ -2,9 +2,11 @@ import { id, MIN, iso, ms, day, time, at, addDays, overlap } from '../utils/date
 import { startExecution, finishExecution, executionFor, recordExecution } from './execution.js';
 import { reconcile, replanFuture, manualReschedule, candidates } from '../scheduler/replan.js';
 import { updateParents, children } from './todo.js';
-import { editFixed } from './occurrences.js';
+import { editFixed, materialize } from './occurrences.js';
 import { settleFocus, toggleFocus } from './focus.js';
 import { remainingFreeSlots, previewReward } from '../scheduler/replan.js';
+import { assertRetainedWork } from '../scheduler/replan.js';
+import { isRewardTodo } from './preferences.js';
 const positive = (v, label) => {
   if (!Number.isFinite(Number(v)) || Number(v) <= 0)
     throw Error(`${label}을 0보다 크게 입력해 주세요.`);
@@ -29,7 +31,18 @@ function validateSource(v, type) {
       if (!Number.isInteger(v.everyDays) || !Number.isInteger(v.times))
         throw Error('주기와 횟수는 정수로 입력해 주세요.');
       if (v.times > v.everyDays) throw Error('횟수는 주기 일수 이하여야 해요.');
-    } else if (!v.weekdays.length) throw Error('요일을 하나 이상 선택해 주세요.');
+    } else if (v.frequency === 'WEEKDAYS' && !v.weekdays.length)
+      throw Error('요일을 하나 이상 선택해 주세요.');
+    if (v.frequency === 'WEEKLY_COUNT') {
+      positive(v.times, '주간 횟수');
+      if (
+        !Number.isInteger(v.times) ||
+        v.times > (v.availableWeekdays || [0, 1, 2, 3, 4, 5, 6]).length
+      )
+        throw Error('주간 횟수는 수행 가능한 요일 수 이하여야 합니다.');
+    }
+    if (['WINDOW', 'WEEKLY_COUNT'].includes(v.frequency) && v.availableWeekdays?.length === 0)
+      throw Error('수행 가능한 요일을 하나 이상 선택해 주세요.');
   }
   if ((v.timeConstraint || v.constraint) === 'WINDOW' && !(v.windowEnd > v.windowStart))
     throw Error('시간 범위의 끝은 시작보다 뒤여야 해요.');
@@ -85,12 +98,14 @@ export function applyAction(state, action, now, realNow = Date.now()) {
       break;
     }
     case 'EDIT_FIXED': {
+      if (p.originalDate) materialize(s, now, `${p.originalDate}T12:00`);
       const o = s.fixedOccurrences.find((o) => o.id === p.id);
       if (!(ms(p.plannedEnd) > ms(p.plannedStart))) throw Error('일정 종료 시각을 확인해 주세요.');
       editFixed(s, o, p, p.scope);
       break;
     }
     case 'DELETE_FIXED': {
+      if (p.originalDate) materialize(s, now, `${p.originalDate}T12:00`);
       const o = s.fixedOccurrences.find((o) => o.id === p.id);
       if (s.execution?.sourceId === o.id) throw Error('진행 중인 일정을 먼저 마쳐 주세요.');
       editFixed(s, o, { status: 'CANCELLED' }, p.scope);
@@ -117,22 +132,27 @@ export function applyAction(state, action, now, realNow = Date.now()) {
     }
     case 'UNAVAILABLE': {
       const collection = p.sourceType === 'TODO' ? s.todos : s.routines;
-      if (!collection.some(x=>x.id===p.id)) throw Error('할 일 또는 루틴을 찾을 수 없습니다.');
+      if (!collection.some((x) => x.id === p.id))
+        throw Error('할 일 또는 루틴을 찾을 수 없습니다.');
       const ids = new Set([p.id]);
       if (p.sourceType === 'TODO') {
         let added = true;
-        while(added) {
+        while (added) {
           added = false;
-          for(const t of collection) if(ids.has(t.parentId)&&!ids.has(t.id)){ids.add(t.id);added=true;}
+          for (const t of collection)
+            if (ids.has(t.parentId) && !ids.has(t.id)) {
+              ids.add(t.id);
+              added = true;
+            }
         }
       }
       if (!p.restore && ids.has(s.execution?.sourceId)) {
         if (!p.finish) throw Error('진행 중인 활동의 종료 내용을 먼저 확인해 주세요.');
-        finishExecution(s,{...p.finish,outcome:'INCOMPLETE'},now);
+        finishExecution(s, { ...p.finish, outcome: 'INCOMPLETE' }, now);
       }
-      for(const source of collection.filter(x=>ids.has(x.id))) {
-        source.unavailableDates = (source.unavailableDates || []).filter(d=>d!==day(now));
-        if(!p.restore) source.unavailableDates.push(day(now));
+      for (const source of collection.filter((x) => ids.has(x.id))) {
+        source.unavailableDates = (source.unavailableDates || []).filter((d) => d !== day(now));
+        if (!p.restore) source.unavailableDates.push(day(now));
       }
       s.livePlan = s.livePlan.filter(
         (b) => !ids.has(b.sourceId) || day(b.plannedStart || `${b.date}T12:00`) !== day(now),
@@ -163,6 +183,16 @@ export function applyAction(state, action, now, realNow = Date.now()) {
     case 'MANUAL': {
       const b = manualReschedule(s, p, p.mode, now);
       startExecution(s, b, now, realNow);
+      break;
+    }
+    case 'REWARD_TODO': {
+      const source = s.todos.find((t) => t.id === p.sourceId);
+      if (!isRewardTodo(source)) throw Error('이 할 일은 자동 보상활동 후보가 아닙니다.');
+      const before = structuredClone(s);
+      const b = manualReschedule(s, p, 'PULL_FROM_FREE', now);
+      startExecution(s, b, now, realNow);
+      replanFuture(s, now);
+      assertRetainedWork(before, s, now, p.sourceId);
       break;
     }
     case 'SWITCH': {
@@ -320,6 +350,8 @@ export function applyAction(state, action, now, realNow = Date.now()) {
     default:
       throw Error(`연결되지 않은 동작: ${action.type}`);
   }
-  replanFuture(s, now, { full: ['SETTINGS', 'REPLAN'].includes(action.type) });
+  replanFuture(s, now, {
+    full: ['SETTINGS', 'REPLAN', 'SAVE_TODO', 'SAVE_ROUTINE'].includes(action.type),
+  });
   return s;
 }

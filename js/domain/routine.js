@@ -4,6 +4,13 @@ const ordinal = (d) =>
     Date.UTC(...d.split('-').map((n, i) => (i === 1 ? Number(n) - 1 : Number(n)))) / 86400000,
   );
 export function windowFor(r, date) {
+  if (r.frequency === 'DAILY') return { start: day(date), end: day(date) };
+  if (r.frequency === 'WEEKLY_COUNT') {
+    const d = day(date),
+      weekday = new Date(`${d}T12:00`).getDay();
+    const start = addDays(d, -((weekday + 6) % 7));
+    return { start, end: addDays(start, 6) };
+  }
   const delta = ordinal(day(date)) - ordinal(r.anchorDate);
   const start = addDays(r.anchorDate, Math.floor(delta / r.everyDays) * r.everyDays);
   return { start, end: addDays(start, r.everyDays - 1) };
@@ -25,13 +32,19 @@ export function routineStatus(s, r, date) {
       .filter((x) => x.sourceId === r.id && x.satisfied && x.date >= w.start && x.date <= w.end)
       .map((x) => x.date),
   );
+  const weekday = new Date(`${d}T12:00`).getDay();
   const eligible =
-    r.frequency !== 'WEEKDAYS' || r.weekdays.includes(new Date(`${d}T12:00`).getDay());
+    r.frequency === 'WEEKDAYS'
+      ? r.weekdays.includes(weekday)
+      : r.frequency === 'DAILY' || !r.availableWeekdays || r.availableWeekdays.includes(weekday);
   const available = eligible && !r.unavailableDates?.includes(d) && d >= r.anchorDate;
   return {
     ...w,
     completed,
-    remaining: Math.max(0, (r.frequency === 'WEEKDAYS' ? 1 : r.times) - completed.size),
+    remaining: Math.max(
+      0,
+      (['WEEKDAYS', 'DAILY'].includes(r.frequency) ? 1 : r.times) - completed.size,
+    ),
     available,
     doneToday: completed.has(d),
     status: !available ? 'UNAVAILABLE' : completed.has(d) ? 'SATISFIED' : 'PENDING',

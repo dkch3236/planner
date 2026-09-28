@@ -1,12 +1,21 @@
 import { iconPicker } from './icons.js';
-import { day, addDays, at, localInput, preciseLocalInput, exactLocalInput, iso, ms } from '../utils/date.js';
+import {
+  day,
+  addDays,
+  at,
+  localInput,
+  preciseLocalInput,
+  exactLocalInput,
+  iso,
+  ms,
+} from '../utils/date.js';
 import { esc } from './views.js';
 const input = (label, name, value = '', type = 'text', extra = '') =>
   `<label>${label}<input name="${name}" type="${type}" value="${esc(value)}" ${extra}></label>`;
 const select = (label, name, options, value) =>
   `<label>${label}<select name="${name}">${options.map(([key, text]) => `<option value="${key}" ${key === value ? 'selected' : ''}>${text}</option>`).join('')}</select></label>`;
-const weekdays = (values) =>
-  `<div class="full"><small>요일</small><div class="weekdays">${['일', '월', '화', '수', '목', '금', '토'].map((t, i) => `<label><input type="checkbox" name="weekdays" value="${i}" ${values.includes(i) ? 'checked' : ''}>${t}</label>`).join('')}</div></div>`;
+const weekdays = (values, name = 'weekdays', label = '요일') =>
+  `<div class="full"><small>${label}</small><div class="weekdays">${['일', '월', '화', '수', '목', '금', '토'].map((t, i) => `<label><input type="checkbox" name="${name}" value="${i}" ${values.includes(i) ? 'checked' : ''}>${t}</label>`).join('')}</div></div>`;
 export function todoForm(t = {}, now) {
   return `<div class="form-grid"><label class="full">할 일 이름<input name="title" value="${esc(t.title || '')}" required maxlength="120"></label>${iconPicker(t.icon)}${input('남은 예상시간 (분)', 'remainingWorkMin', t.remainingWorkMin || 45, 'number', 'min="1" required')}${input('마감', 'deadline', localInput(t.deadline || at(addDays(now, 2), '18:00')), 'datetime-local', 'required')}${select(
     '중요도',
@@ -43,6 +52,11 @@ export function routineForm(r = {}, now) {
     ],
     r.basis || 'TIME',
   )}${select(
+    '하고 싶은 정도',
+    'desire',
+    [1, 2, 3, 4, 5].map((x) => [String(x), `${x} / 5`]),
+    String(r.desire || 3),
+  )}${select(
     '시간 제약',
     'constraint',
     [
@@ -55,11 +69,13 @@ export function routineForm(r = {}, now) {
     '반복 방식',
     'frequency',
     [
+      ['DAILY', '매일 1회'],
+      ['WEEKLY_COUNT', '매주 N회 · 가능한 요일 중 선택'],
       ['WINDOW', 'N일 동안 M회'],
       ['WEEKDAYS', '특정 요일'],
     ],
     r.frequency || 'WINDOW',
-  )}${input('주기 기준일', 'anchorDate', r.anchorDate || day(now), 'date', 'required')}<div class="full" data-condition="frequency:WINDOW"><div class="form-grid">${input('N일', 'everyDays', r.everyDays || 7, 'number', 'min="1" max="365"')}${input('M회', 'times', r.times || 3, 'number', 'min="1" max="365"')}</div></div><div class="full" data-condition="frequency:WEEKDAYS">${weekdays(r.weekdays || [1, 3, 5])}</div></div>`;
+  )}${input('시작일 / N일 주기의 기준일', 'anchorDate', r.anchorDate || day(now), 'date', 'required')}<div class="full" data-condition="frequency:WINDOW">${input('N일', 'everyDays', r.everyDays || 7, 'number', 'min="1" max="365"')}</div><div class="full" data-condition="frequency:WINDOW|WEEKLY_COUNT">${input('주기당 횟수', 'times', r.times || 3, 'number', 'min="1" max="365"')}<p class="intro-note">매주 N회는 월요일부터 일요일까지 계산합니다.</p>${weekdays(r.availableWeekdays || [0, 1, 2, 3, 4, 5, 6], 'availableWeekdays', '수행 가능한 요일')}</div><div class="full" data-condition="frequency:WEEKDAYS">${weekdays(r.weekdays || [1, 3, 5])}</div></div>`;
 }
 export function fixedForm(o = {}, now) {
   return `<div class="form-grid"><label class="full">일정 이름<input name="title" value="${esc(o.title || '')}" required maxlength="120"></label>${iconPicker(o.icon)}${input('시작', 'start', localInput(o.plannedStart || at(addDays(now, 1), '13:00')), 'datetime-local', 'required')}${input('종료', 'end', localInput(o.plannedEnd || at(addDays(now, 1), '14:00')), 'datetime-local', 'required')}${
@@ -78,6 +94,7 @@ export function fixedForm(o = {}, now) {
           'recurrence',
           [
             ['ONCE', '한 번만'],
+            ['DAILY', '매일 반복'],
             ['WEEKLY', '매주 반복'],
           ],
           'ONCE',
@@ -124,10 +141,9 @@ export function parseForm(form) {
     'maxFocus',
   ])
     if (key in d) d[key] = Number(d[key]);
-  if (form.querySelector('[name="weekdays"]'))
-    d.weekdays = [...form.querySelectorAll('[name="weekdays"]:checked')].map((x) =>
-      Number(x.value),
-    );
+  for (const name of ['weekdays', 'availableWeekdays'])
+    if (form.querySelector(`[name="${name}"]`))
+      d[name] = [...form.querySelectorAll(`[name="${name}"]:checked`)].map((x) => Number(x.value));
   if (form.querySelector('[name="recordTimeline"]'))
     d.recordTimeline = form.elements.recordTimeline.checked;
   return d;
@@ -135,6 +151,9 @@ export function parseForm(form) {
 export function conditions(root) {
   for (const el of root.querySelectorAll('[data-condition]')) {
     const [name, value] = el.dataset.condition.split(':');
-    el.classList.toggle('hidden', root.querySelector(`[name="${name}"]`)?.value !== value);
+    el.classList.toggle(
+      'hidden',
+      !value.split('|').includes(root.querySelector(`[name="${name}"]`)?.value),
+    );
   }
 }

@@ -4,6 +4,8 @@ import { day, addDays, at, ms, time, duration, stopwatch, MIN } from '../utils/d
 import { resolveCurrentView } from '../scheduler/currentView.js';
 import { depth, progress } from '../domain/todo.js';
 import { gaps } from '../scheduler/availability.js';
+import { fixedManagementEntries } from '../domain/occurrences.js';
+import { isRewardTodo } from '../domain/preferences.js';
 export const esc = (v) =>
   String(v ?? '').replace(
     /[&<>"']/g,
@@ -119,7 +121,7 @@ export function manage(s, now) {
       list
         .map((t) => {
           const p = progress(s.todos, t);
-          return `<div class="todo-row" style="padding-left:${12 + depth(s.todos, t) * 24}px"><span class="muted">${t.parentId ? '↳' : '○'}</span><button class="todo-title" data-action="todo-detail" data-id="${t.id}">${esc(t.title)}<small style="display:block;margin-top:8px">${day(t.deadline)}까지 · ${duration(p.remaining)} 남음</small></button><span class="pill">${readable(t.importance)}</span></div>`;
+          return `<div class="todo-row" style="padding-left:${12 + depth(s.todos, t) * 24}px"><span class="muted">${t.parentId ? '↳' : '○'}</span><button class="todo-title" data-action="todo-detail" data-id="${t.id}">${esc(t.title)}<small style="display:block;margin-top:8px">${day(t.deadline)}까지 · ${duration(p.remaining)} 남음${isRewardTodo(t) ? ' · 보상활동 후보' : ''}</small></button><span class="pill">${readable(t.importance)}</span></div>`;
         })
         .join('') || '<div class="empty">이 목록에 표시할 할 일이 없습니다.</div>'
     }`;
@@ -129,16 +131,15 @@ export function manage(s, now) {
         .filter((r) => r.status === 'ACTIVE')
         .map(
           (r) =>
-            `<div class="todo-row"><div><h3>${esc(r.title)}</h3><small>${readable(r.basis)} · ${duration(r.duration)} · ${r.frequency === 'WINDOW' ? `${r.everyDays}일 / ${r.times}회` : '요일 지정'} · ${readable(r.constraint)}</small></div><div>${button(r.unavailableDates?.includes(day(now)) ? '오늘 다시 할래요' : '오늘은 안 할래요', 'unavailable', `data-id="${r.id}" data-type="ROUTINE" data-restore="${!!r.unavailableDates?.includes(day(now))}"`, 'text-button')}${button('편집', 'edit-routine', `data-id="${r.id}"`, 'btn')}</div></div>`,
+            `<div class="todo-row"><div><h3>${esc(r.title)}</h3><small>${readable(r.basis)} · ${duration(r.duration)} · ${r.frequency === 'DAILY' ? '매일 1회' : r.frequency === 'WEEKLY_COUNT' ? `매주 ${r.times}회` : r.frequency === 'WINDOW' ? `${r.everyDays}일 / ${r.times}회` : '요일 지정'}${r.availableWeekdays && ['WINDOW', 'WEEKLY_COUNT'].includes(r.frequency) ? ' · ' + r.availableWeekdays.map((d) => '일월화수목금토'[d]).join('·') : ''} · ${readable(r.constraint)}</small></div><div>${button(r.unavailableDates?.includes(day(now)) ? '오늘 다시 할래요' : '오늘은 안 할래요', 'unavailable', `data-id="${r.id}" data-type="ROUTINE" data-restore="${!!r.unavailableDates?.includes(day(now))}"`, 'text-button')}${button('편집', 'edit-routine', `data-id="${r.id}"`, 'btn')}</div></div>`,
         )
         .join('') || '<p class="empty">루틴을 추가해 보세요.</p>';
   } else {
     body =
-      s.fixedOccurrences
-        .filter((o) => o.status !== 'CANCELLED' && ms(o.plannedEnd) >= now)
+      fixedManagementEntries(s, now)
         .map(
-          (o) =>
-            `<div class="todo-row"><div><h3>${esc(o.title)}</h3><small>${o.date} · ${time(o.plannedStart)} – ${time(o.plannedEnd)}</small></div>${button('수정 / 삭제', 'edit-fixed', `data-id="${o.id}"`, 'btn')}</div>`,
+          ({ series, occurrence: o }) =>
+            `<div class="todo-row"><div><h3>${esc(series.recurrence === 'ONCE' ? o.title : series.title)}</h3><small>${series.recurrence === 'DAILY' ? '매일' : series.recurrence === 'WEEKLY' ? '매주 ' + series.weekdays.map((d) => '일월화수목금토'[d]).join('·') : '한 번'} · ${series.startTime} – ${series.endTime}<br>다음 일정 ${day(o.plannedStart)}</small></div>${button('수정 / 삭제', series.id ? 'edit-fixed-series' : 'edit-fixed', `data-id="${series.id || o.id}"`, 'btn')}</div>`,
         )
         .join('') || '<p class="empty">고정된 약속이 없어요.</p>';
   }
@@ -154,8 +155,22 @@ export function manage(s, now) {
 }
 export function week(s, now) {
   const weekStart = s.ui.weekStart || day(now);
-  const selected = s.ui.weekDay >= weekStart && s.ui.weekDay < addDays(weekStart,7) ? s.ui.weekDay : weekStart;
-  const dateTabs = s.ui.historyDate ? '' : `<nav class="week-day-tabs" aria-label="주간 날짜 선택">${Array.from({length:7},(_,i)=>{const d=addDays(weekStart,i);return button(`${Number(d.slice(5,7))}/${Number(d.slice(8))}`, 'week-day', `data-date="${d}" aria-pressed="${d===selected}"`,d===selected?'active':'');}).join('')}</nav>`;
+  const selected =
+    s.ui.weekDay >= weekStart && s.ui.weekDay < addDays(weekStart, 7) ? s.ui.weekDay : weekStart;
+  const dateTabs = s.ui.historyDate
+    ? ''
+    : `<nav class="week-day-tabs" aria-label="주간 날짜 선택">${Array.from(
+        { length: 7 },
+        (_, i) => {
+          const d = addDays(weekStart, i);
+          return button(
+            `${Number(d.slice(5, 7))}/${Number(d.slice(8))}`,
+            'week-day',
+            `data-date="${d}" aria-pressed="${d === selected}"`,
+            d === selected ? 'active' : '',
+          );
+        },
+      ).join('')}</nav>`;
 
   return `<div class="actions"><label>주간 시작 날짜 <input id="week-date" type="date" value="${s.ui.weekStart || day(now)}"></label>${button('주간 이동', 'week-date')}${button('오늘로', 'week-today')}</div><p class="intro-note">${s.ui.weekStart || day(now)}부터 7일 · 먼 날짜에는 등록한 고정 일정이 표시됩니다.</p><div class="actions"><label>지난 기록 날짜 <input id="history-date" type="date" max="${day(now)}" value="${s.ui.historyDate || ''}"></label>${button('날짜 조회 / 비우면 주간 계획', 'history-date')}</div>${dateTabs}<div class="legend"><span>● 실제 기록</span><span>▧ 미래 계획</span><span>┄ 날짜만 배정</span><span>빈 과거는 미기록 시간</span></div><div class="week-grid ${s.ui.historyDate ? 'history-grid' : ''}">${Array.from(
     { length: s.ui.historyDate ? 1 : 7 },
@@ -170,8 +185,22 @@ export function week(s, now) {
             start: new Date(Math.max(dayStart, ms(t.start))).toISOString(),
             end: new Date(Math.min(dayEnd, ms(t.end))).toISOString(),
           })),
-        blocks = [...s.livePlan, ...s.fixedOccurrences.filter(o=>o.status!=='CANCELLED' && o.status==='PLANNED' && !s.livePlan.some(b=>b.sourceId===o.id)).map(o=>({...o,sourceType:'FIXED',sourceId:o.id,calendarOnly:true}))].filter(
-          (b) => (b.date || day(b.plannedStart)) === d && (!b.plannedEnd || ms(b.plannedEnd) > now),
+        blocks = [
+          ...s.livePlan,
+          ...s.fixedOccurrences
+            .filter(
+              (o) =>
+                o.status !== 'CANCELLED' &&
+                o.status === 'PLANNED' &&
+                !s.livePlan.some((b) => b.sourceId === o.id),
+            )
+            .map((o) => ({ ...o, sourceType: 'FIXED', sourceId: o.id, calendarOnly: true })),
+        ].filter(
+          (b) =>
+            (b.plannedStart
+              ? ms(b.plannedStart) < at(addDays(d, 1), '00:00') && ms(b.plannedEnd) > dayStart
+              : b.date === d) &&
+            (!b.plannedEnd || ms(b.plannedEnd) > now),
         );
       const recorded = s.timeline.map((t) => ({ plannedStart: t.start, plannedEnd: t.end }));
       if (s.execution)
@@ -202,11 +231,11 @@ export function week(s, now) {
             : `<button class="mini-block history" data-action="timeline-edit" data-id="${t.id}"><small>실제 · ${time(t.start)} – ${time(t.end)}</small>${esc(t.title)}</button>`,
         )
         .join('');
-      return `<section class="week-day ${s.ui.historyDate || d===selected ? 'selected-day' : ''}"><div class="week-heading"><span>${d === day(now) ? '오늘' : new Date(`${d}T12:00`).toLocaleDateString('ko-KR', { weekday: 'long' })}</span><strong>${Number(d.slice(5,7))}/${Number(d.slice(-2))}</strong></div>${i === 0 ? button('＋ 지난 시간 기록', 'timeline-add', '', 'text-button') : ''}${pastMarkup}${s.execution && ms(s.execution.startedAt) < at(addDays(d, 1), '00:00') && now >= dayStart ? `<div class="mini-block active"><small>지금 실행 중 · ${time(s.execution.startedAt)} 시작</small>${esc(s.execution.title)}</div>` : ''}${blocks
+      return `<section class="week-day ${s.ui.historyDate || d === selected ? 'selected-day' : ''}"><div class="week-heading"><span>${d === day(now) ? '오늘' : new Date(`${d}T12:00`).toLocaleDateString('ko-KR', { weekday: 'long' })}</span><strong>${Number(d.slice(5, 7))}/${Number(d.slice(-2))}</strong></div>${i === 0 ? button('＋ 지난 시간 기록', 'timeline-add', '', 'text-button') : ''}${pastMarkup}${s.execution && ms(s.execution.startedAt) < at(addDays(d, 1), '00:00') && now >= dayStart ? `<div class="mini-block active"><small>지금 실행 중 · ${time(s.execution.startedAt)} 시작</small>${esc(s.execution.title)}</div>` : ''}${blocks
         .filter((b) => !b.active)
         .map(
           (b) =>
-            `<button class="mini-block ${typeClass(b)} ${!b.plannedStart ? 'date-only' : ''}" data-action="${b.calendarOnly ? 'edit-fixed' : 'block'}" data-id="${b.calendarOnly ? b.sourceId : b.id}"><small>${b.plannedStart ? `${time(b.plannedStart)} – ${time(b.plannedEnd)}` : '날짜 배정 · 시각 미정'}${b.locked ? ' · ▣' : ''}</small>${sourceIcon(s,b)?`<img class="schedule-icon" src="/public/assets/${sourceIcon(s,b)}" alt="">`:''}${esc(b.title)}${b.assignedWorkMin ? `<small style="margin-top:6px">작업 ${b.assignedWorkMin}분 · 예약 ${b.reservedMin}분</small>` : ''}</button>`,
+            `<button class="mini-block ${typeClass(b)} ${!b.plannedStart ? 'date-only' : ''}" data-action="${b.calendarOnly ? 'edit-fixed' : 'block'}" data-id="${b.calendarOnly ? b.sourceId : b.id}"><small>${b.plannedStart ? `${time(b.plannedStart)} – ${time(b.plannedEnd)}` : '날짜 배정 · 시각 미정'}${b.locked ? ' · ▣' : ''}</small>${sourceIcon(s, b) ? `<img class="schedule-icon" src="/public/assets/${sourceIcon(s, b)}" alt="">` : ''}${esc(b.title)}${b.assignedWorkMin ? `<small style="margin-top:6px">작업 ${b.assignedWorkMin}분 · 예약 ${b.reservedMin}분</small>` : ''}</button>`,
         )
         .join('')}</section>`;
     },

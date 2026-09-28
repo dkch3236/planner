@@ -126,21 +126,7 @@ export function manualReschedule(s, selected, mode, now) {
     const trial = structuredClone(s);
     trial.personalPlans.push(target);
     replanFuture(trial, now);
-    for (const b of s.livePlan.filter(
-      (b) =>
-        ['TODO', 'ROUTINE'].includes(b.sourceType) && (!b.plannedEnd || ms(b.plannedEnd) > now),
-    )) {
-      const r = b.sourceType === 'ROUTINE' ? s.routines.find((r) => r.id === b.sourceId) : null;
-      const w = r ? routineStatus(s, r, b.date || day(b.plannedStart)) : null;
-      const eligible = (x) =>
-        x.sourceId === b.sourceId &&
-        (!x.plannedEnd || ms(x.plannedEnd) > now) &&
-        (!w ||
-          ((x.date || day(x.plannedStart)) >= w.start && (x.date || day(x.plannedStart)) <= w.end));
-      const before = s.livePlan.filter(eligible).reduce((n, x) => n + x.assignedWorkMin, 0);
-      const after = trial.livePlan.filter(eligible).reduce((n, x) => n + x.assignedWorkMin, 0);
-      if (after < before) throw Error('다른 작업의 마감·수행 기회를 지키면서 옮길 공간이 없어요.');
-    }
+    assertRetainedWork(s, trial, now);
     Object.assign(s, trial);
     return target;
   }
@@ -161,6 +147,26 @@ export function manualReschedule(s, selected, mode, now) {
     s.pendingSaved = null;
   }
   return candidate;
+}
+
+export function assertRetainedWork(s, trial, now, exceptSourceId = null) {
+  for (const b of s.livePlan.filter(
+    (b) =>
+      b.sourceId !== exceptSourceId &&
+      ['TODO', 'ROUTINE'].includes(b.sourceType) &&
+      (!b.plannedEnd || ms(b.plannedEnd) > now),
+  )) {
+    const r = b.sourceType === 'ROUTINE' ? s.routines.find((r) => r.id === b.sourceId) : null;
+    const w = r ? routineStatus(s, r, b.date || day(b.plannedStart)) : null;
+    const eligible = (x) =>
+      x.sourceId === b.sourceId &&
+      (!x.plannedEnd || ms(x.plannedEnd) > now) &&
+      (!w ||
+        ((x.date || day(x.plannedStart)) >= w.start && (x.date || day(x.plannedStart)) <= w.end));
+    const before = s.livePlan.filter(eligible).reduce((n, x) => n + x.assignedWorkMin, 0);
+    const after = trial.livePlan.filter(eligible).reduce((n, x) => n + x.assignedWorkMin, 0);
+    if (after < before) throw Error('다른 작업의 마감·수행 기회를 지키면서 옮길 공간이 없어요.');
+  }
 }
 
 export function remainingFreeSlots(s, now) {

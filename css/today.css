@@ -711,8 +711,34 @@
 }
 
 /* Requested typography for timer labels and primary actions. */
-.paper-actions .paper-button,.time-labels,.focus-labels,.time-pill,.focus-pill,.elapsed-label,.planned-info {font-family:Memoment,sans-serif;font-weight:400;}
-.paper-actions .paper-button{font-size:17px;}
-.time-labels,.focus-labels{font-size:12px;}
-.time-pill,.focus-pill{font-size:12px;}
-.skip-today{display:block;margin:8px auto 0;padding:7px 12px;text-decoration:underline;text-underline-offset:3px;font-size:12px;color:#816753;min-height:32px;}
+.paper-actions .paper-button,
+.time-labels,
+.focus-labels,
+.time-pill,
+.focus-pill,
+.elapsed-label,
+.planned-info {
+  font-family: Memoment, sans-serif;
+  font-weight: 400;
+}
+.paper-actions .paper-button {
+  font-size: 17px;
+}
+.time-labels,
+.focus-labels {
+  font-size: 12px;
+}
+.time-pill,
+.focus-pill {
+  font-size: 12px;
+}
+.skip-today {
+  display: block;
+  margin: 8px auto 0;
+  padding: 7px 12px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  font-size: 12px;
+  color: #816753;
+  min-height: 32px;
+}

@@ -57,13 +57,18 @@ try {
           store.ui({ historyDate: document.querySelector('#history-date').value });
           break;
         case 'week-day':
-          store.ui({weekDay:d.date});
+          store.ui({ weekDay: d.date });
           break;
         case 'week-date':
-          store.ui({tab:'week', weekStart:document.querySelector('#week-date').value || null,historyDate:null});
+          store.ui({
+            tab: 'week',
+            weekStart: document.querySelector('#week-date').value || null,
+            weekDay: null,
+            historyDate: null,
+          });
           break;
         case 'week-today':
-          store.ui({tab:'week', weekStart:null,historyDate:null});
+          store.ui({ tab: 'week', weekStart: null, weekDay: null, historyDate: null });
           break;
         case 'start':
           store.dispatch({ type: 'START', payload: { id: d.id } });

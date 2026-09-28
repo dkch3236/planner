@@ -37,4 +37,5 @@ export const stopwatch = (minutes) => {
     .join(':');
 };
 
-export const exactLocalInput = (t) => preciseLocalInput(t) + '.' + String(new Date(t).getMilliseconds()).padStart(3, '0');
+export const exactLocalInput = (t) =>
+  preciseLocalInput(t) + '.' + String(new Date(t).getMilliseconds()).padStart(3, '0');

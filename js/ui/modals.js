@@ -1,6 +1,9 @@
+import { validIcon } from './icons.js';
+import { nextFixedOccurrence } from '../domain/occurrences.js';
+import { isRewardTodo } from '../domain/preferences.js';
 import { appNow, MIN, ms, iso, day, time, duration, id } from '../utils/date.js';
 import { candidates, remainingFreeSlots, previewReward } from '../scheduler/replan.js';
-import { progress, children } from '../domain/todo.js';
+import { progress, children, leaves, activeLeaves } from '../domain/todo.js';
 import { validateFinish, finishExecution } from '../domain/execution.js';
 import { esc, button, readable } from './views.js';
 import {
@@ -48,6 +51,7 @@ export function createModals(store, toast) {
           dispatch('EDIT_FIXED', {
             ...data,
             id: source.id,
+            originalDate: source.date,
             plannedStart: iso(data.start),
             plannedEnd: iso(data.end),
           });
@@ -58,7 +62,13 @@ export function createModals(store, toast) {
             parentId: source.parentId || parentId,
           });
         close();
-        if(type === 'FIXED') store.ui({tab:'week',weekStart:day(data.start),historyDate:null});
+        if (type === 'FIXED')
+          store.ui({
+            tab: 'week',
+            weekStart: day(data.start),
+            weekDay: day(data.start),
+            historyDate: null,
+          });
         toast('저장하고 미래 계획을 조정했어요.');
       },
     );
@@ -164,9 +174,20 @@ export function createModals(store, toast) {
     );
   }
   function reward() {
+    const s = store.get(),
+      now = appNow(s);
+    const available = new Set(
+      candidates(s, now)
+        .filter((b) => b.sourceType === 'TODO')
+        .map((b) => b.sourceId),
+    );
+    const automatic = activeLeaves(s).filter(isRewardTodo);
+    const suggestions = automatic.length
+      ? `<h3>등록한 할 일에서 선택</h3><p class="intro-note">중요도 ‘선택’ · 하고 싶은 정도 4–5인 할 일입니다. 시작하면 기존 할 일의 작업량에 반영됩니다.</p>${automatic.map((t) => (available.has(t.id) ? button(`${esc(t.title)} · 지금 시작 (${Math.min(t.remainingWorkMin, s.settings.maxFocus)}분)`, 'reward-todo', `data-id="${t.id}"`, 'candidate') : `<p>${esc(t.title)} · 지금은 시간 제약 또는 남은 공간 때문에 시작할 수 없습니다.</p>`)).join('')}<h3>직접 입력</h3>`
+      : '<p class="intro-note">중요도 ‘선택’, 하고 싶은 정도 4–5인 할 일을 등록하면 여기에 자동으로 표시됩니다.</p>';
     show(
       '보상활동 계획',
-      `<p class="intro-note">추가 확보 시간이 0분이어도 원래의 자유시간을 사용할 수 있어요.</p><div class="form-grid"><label>하고 싶은 활동<input name="title" value="베이킹" required></label><label>필요한 시간 (분)<input name="minutes" type="number" min="5" max="720" value="60" required></label></div>`,
+      `${suggestions}<p class="intro-note">추가 확보 시간이 0분이어도 원래의 자유시간을 사용할 수 있어요.</p><div class="form-grid"><label>하고 싶은 활동<input name="title" required></label><label>필요한 시간 (분)<input name="minutes" type="number" min="5" max="720" value="60" required></label></div>`,
       (data) => {
         context = { reward: data };
         const s = store.get(),
@@ -188,7 +209,7 @@ export function createModals(store, toast) {
     if (!b) return;
     show(
       b.title,
-      `<p class="intro-note">${b.plannedStart ? `${day(b.plannedStart)} ${time(b.plannedStart)} – ${time(b.plannedEnd)}` : b.date + ' · 날짜만 배정'}${b.assignedWorkMin ? `<br>할당 작업 ${b.assignedWorkMin}분 / 예약 ${b.reservedMin}분` : ''}</p><div class="actions">${['TODO', 'ROUTINE'].includes(b.sourceType) && b.plannedStart ? button(b.locked ? '잠금 해제' : '이 블록 잠그기', 'lock', `data-id="${b.id}"`) : ''}${b.sourceType === 'TODO' ? button('할 일 상세', 'todo-detail', `data-id="${b.sourceId}"`) : ''}${b.sourceType === 'FIXED' ? button('일정 편집', 'edit-fixed', `data-id="${b.sourceId}"`) : ''}${['TODO', 'ROUTINE'].includes(b.sourceType) ? button('지금 가능한 작업 보기', 'candidates', 'data-mode="PULL_FROM_FREE"') : ''}${['TODO','ROUTINE'].includes(b.sourceType) ? button('오늘은 안 할래요', 'unavailable', `data-id="${b.sourceId}" data-type="${b.sourceType}"`) : ''}${b.sourceType === 'FREE' ? button('보상활동 계획', 'reward') : ''}</div>`,
+      `<p class="intro-note">${b.plannedStart ? `${day(b.plannedStart)} ${time(b.plannedStart)} – ${time(b.plannedEnd)}` : b.date + ' · 날짜만 배정'}${b.assignedWorkMin ? `<br>할당 작업 ${b.assignedWorkMin}분 / 예약 ${b.reservedMin}분` : ''}</p><div class="actions">${['TODO', 'ROUTINE'].includes(b.sourceType) && b.plannedStart ? button(b.locked ? '잠금 해제' : '이 블록 잠그기', 'lock', `data-id="${b.id}"`) : ''}${b.sourceType === 'TODO' ? button('할 일 상세', 'todo-detail', `data-id="${b.sourceId}"`) : ''}${b.sourceType === 'FIXED' ? button('일정 편집', 'edit-fixed', `data-id="${b.sourceId}"`) : ''}${['TODO', 'ROUTINE'].includes(b.sourceType) ? button('지금 가능한 작업 보기', 'candidates', 'data-mode="PULL_FROM_FREE"') : ''}${['TODO', 'ROUTINE'].includes(b.sourceType) ? button('오늘은 안 할래요', 'unavailable', `data-id="${b.sourceId}" data-type="${b.sourceType}"`) : ''}${b.sourceType === 'FREE' ? button('보상활동 계획', 'reward') : ''}</div>`,
     );
   }
   function handle(action, data) {
@@ -237,6 +258,14 @@ export function createModals(store, toast) {
           s.fixedOccurrences.find((t) => t.id === data.id),
         );
         break;
+      case 'edit-fixed-series': {
+        const series = s.fixedSeries.find((x) => x.id === data.id);
+        const occurrence = nextFixedOccurrence(s, series, appNow(s));
+        if (!occurrence) throw Error('앞으로 남은 일정이 없습니다.');
+        sourceForm('FIXED', occurrence);
+        dialog.querySelector('[name="scope"]').value = 'FUTURE';
+        break;
+      }
       case 'child':
         sourceForm('TODO', {}, data.id);
         break;
@@ -312,6 +341,11 @@ export function createModals(store, toast) {
       case 'reward':
         reward();
         break;
+      case 'reward-todo':
+        dispatch('REWARD_TODO', { sourceId: data.id });
+        close();
+        toast('등록한 보상활동 할 일을 시작했습니다.');
+        break;
       case 'reward-now': {
         const preview = previewReward(s, context.reward, appNow(s));
         context.signature = preview.signature;
@@ -353,17 +387,36 @@ export function createModals(store, toast) {
         close();
         break;
       case 'unavailable': {
-        const payload = {id:data.id, sourceType:data.type, restore:data.restore === 'true'};
-        if (!payload.restore && s.execution?.sourceId === data.id) {
-          show('오늘은 안 할래요', '<p class="intro-note">지금까지의 활동을 기록하고 오늘 남은 배정을 제외합니다.</p>' + finishForm(s.execution, appNow(s), 'INCOMPLETE'), values=>{
-            dispatch('UNAVAILABLE',{...payload,finish:values}); close(); toast('오늘 남은 배정을 제외했습니다.');
-          });
-        } else { dispatch('UNAVAILABLE',payload); close(); toast(payload.restore?'오늘 배정에 다시 포함했습니다.':'오늘 남은 배정을 제외했습니다.'); }
+        const payload = { id: data.id, sourceType: data.type, restore: data.restore === 'true' };
+        const activeSource = s.execution?.sourceId;
+        const includesActive =
+          activeSource &&
+          (activeSource === data.id ||
+            (data.type === 'TODO' && leaves(s.todos, data.id).some((t) => t.id === activeSource)));
+        if (!payload.restore && includesActive) {
+          show(
+            '오늘은 안 할래요',
+            '<p class="intro-note">지금까지의 활동을 기록하고 오늘 남은 배정을 제외합니다.</p>' +
+              finishForm(s.execution, appNow(s), 'INCOMPLETE'),
+            (values) => {
+              dispatch('UNAVAILABLE', { ...payload, finish: values });
+              close();
+              toast('오늘 남은 배정을 제외했습니다.');
+            },
+          );
+        } else {
+          dispatch('UNAVAILABLE', payload);
+          close();
+          toast(
+            payload.restore ? '오늘 배정에 다시 포함했습니다.' : '오늘 남은 배정을 제외했습니다.',
+          );
+        }
         break;
       }
       case 'delete-fixed':
         dispatch('DELETE_FIXED', {
           id: data.id,
+          originalDate: context.source?.date,
           scope: dialog.querySelector('[name="scope"]').value,
         });
         close();
@@ -373,7 +426,17 @@ export function createModals(store, toast) {
     }
     return true;
   }
-  dialog.addEventListener('change', () => conditions(dialog));
+  dialog.addEventListener('change', (event) => {
+    conditions(dialog);
+    if (event.target.name === 'icon') {
+      const icon = event.target.value;
+      event.target.closest('.icon-picker').querySelector('summary').innerHTML =
+        '아이콘 선택 ' +
+        (validIcon(icon)
+          ? `<img src="/public/assets/${icon}" alt="선택한 아이콘">`
+          : '· 자동 선택');
+    }
+  });
   dialog.addEventListener('submit', (event) => {
     event.preventDefault();
     try {
