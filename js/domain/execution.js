@@ -16,6 +16,7 @@ export function executionFor(block, now, realNow = Date.now()) {
     startedAt: iso(now),
     expectedEnd: block.plannedEnd || iso(now + 30 * MIN),
     measuredFocusMin: 0,
+    focusIntervals: [],
     timerStatus: focusLike ? 'RUNNING' : null,
     focusCheckpoint: realNow,
     suspicious: false,

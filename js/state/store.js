@@ -3,18 +3,23 @@ import { load, save } from './persistence.js';
 import { appNow, iso } from '../utils/date.js';
 import { applyAction } from '../domain/actions.js';
 import { reconcile, replanFuture } from '../scheduler/replan.js';
-export function createStore() {
-  let state = load();
-  if (state.execution?.focusLike && state.execution.timerStatus !== 'PAUSED') {
+import { materialize } from '../domain/occurrences.js';
+export function createStore({ initialState = null } = {}) {
+  let state = initialState ? structuredClone(initialState) : load();
+  const persist = initialState ? () => {} : save;
+  if (!initialState) state.ui.virtualNow = null;
+  if (!initialState && state.execution?.focusLike && state.execution.timerStatus !== 'PAUSED') {
     state.execution.timerStatus = 'PAUSED';
     state.execution.suspicious = true;
   }
   const listeners = new Set();
-  reconcile(state, appNow(state));
-  replanFuture(state, appNow(state));
+  if (!initialState) {
+    reconcile(state, appNow(state));
+      replanFuture(state, appNow(state));
+  }
   const notify = () => listeners.forEach((fn) => fn(state));
   const commit = (next) => {
-    save(next);
+    persist(next);
     state = next;
     notify();
   };
@@ -25,7 +30,8 @@ export function createStore() {
     ui: (patch) => {
       const next = structuredClone(state);
       Object.assign(next.ui, patch);
-      if (patch.tab === 'week') {
+      if (patch.tab === 'week' || 'weekStart' in patch) {
+        materialize(next, appNow(next), next.ui.weekStart ? `${next.ui.weekStart}T12:00:00` : appNow(next));
         reconcile(next, appNow(next));
         replanFuture(next, appNow(next));
       }
@@ -45,7 +51,7 @@ export function createStore() {
       replanFuture(next, appNow(next));
       commit(next);
     },
-    tick: () => settleFocus(state.execution),
-    flush: () => save(state),
+    tick: () => settleFocus(state.execution, Date.now(), appNow(state)),
+    flush: () => persist(state),
   };
 }

@@ -109,7 +109,7 @@ export function plan(s, now, { full = false } = {}) {
     const d = addDays(now, offset);
     const exact = [
       ...activeLeaves(s)
-        .filter((t) => t.timeConstraint === 'FIXED' && day(t.fixedStart) === d)
+        .filter((t) => t.timeConstraint === 'FIXED' && day(t.fixedStart) === d && !t.unavailableDates?.includes(d))
         .map((source) => ({ source, type: 'TODO' })),
       ...s.routines
         .filter((r) => r.status === 'ACTIVE' && r.constraint === 'FIXED' && routineNeeded(r, d))

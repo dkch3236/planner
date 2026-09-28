@@ -1,0 +1,31 @@
+{
+  "verified": true,
+  "added": 58,
+  "total": 620,
+  "existing_unchanged": 562,
+  "source_folders": {
+    "icons": 30,
+    "날씨overlay_가로": 6,
+    "배경_가로": 5,
+    "배경_세로": 8,
+    "보더라인+코너": 5,
+    "종이텍스처": 4
+  },
+  "checks": [
+    "all imported RGBA pixels match source",
+    "original dimensions preserved",
+    "existing file hashes unchanged"
+  ],
+  "categories": {
+    "characters": 8,
+    "borders": 71,
+    "icons": 219,
+    "decorations": 259,
+    "illustrations": 12,
+    "tapes": 10,
+    "stamps": 18,
+    "overlays": 6,
+    "backgrounds": 13,
+    "textures": 4
+  }
+}

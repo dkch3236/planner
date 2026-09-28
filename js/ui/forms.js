@@ -1,4 +1,5 @@
-import { day, addDays, at, localInput, preciseLocalInput, iso, ms } from '../utils/date.js';
+import { iconPicker } from './icons.js';
+import { day, addDays, at, localInput, preciseLocalInput, exactLocalInput, iso, ms } from '../utils/date.js';
 import { esc } from './views.js';
 const input = (label, name, value = '', type = 'text', extra = '') =>
   `<label>${label}<input name="${name}" type="${type}" value="${esc(value)}" ${extra}></label>`;
@@ -7,7 +8,7 @@ const select = (label, name, options, value) =>
 const weekdays = (values) =>
   `<div class="full"><small>요일</small><div class="weekdays">${['일', '월', '화', '수', '목', '금', '토'].map((t, i) => `<label><input type="checkbox" name="weekdays" value="${i}" ${values.includes(i) ? 'checked' : ''}>${t}</label>`).join('')}</div></div>`;
 export function todoForm(t = {}, now) {
-  return `<div class="form-grid"><label class="full">할 일 이름<input name="title" value="${esc(t.title || '')}" required maxlength="120"></label>${input('남은 예상시간 (분)', 'remainingWorkMin', t.remainingWorkMin || 45, 'number', 'min="1" required')}${input('마감', 'deadline', localInput(t.deadline || at(addDays(now, 2), '18:00')), 'datetime-local', 'required')}${select(
+  return `<div class="form-grid"><label class="full">할 일 이름<input name="title" value="${esc(t.title || '')}" required maxlength="120"></label>${iconPicker(t.icon)}${input('남은 예상시간 (분)', 'remainingWorkMin', t.remainingWorkMin || 45, 'number', 'min="1" required')}${input('마감', 'deadline', localInput(t.deadline || at(addDays(now, 2), '18:00')), 'datetime-local', 'required')}${select(
     '중요도',
     'importance',
     [
@@ -33,7 +34,7 @@ export function todoForm(t = {}, now) {
   )}<div></div><div data-condition="timeConstraint:WINDOW" class="full"><div class="form-grid">${input('가능한 시작', 'windowStart', t.windowStart || '09:00', 'time')}${input('가능한 끝', 'windowEnd', t.windowEnd || '18:00', 'time')}</div></div><div data-condition="timeConstraint:FIXED" class="full"><div class="form-grid">${input('고정 시작', 'fixedStart', localInput(t.fixedStart || at(addDays(now, 1), '10:00')), 'datetime-local')}${input('고정 종료', 'fixedEnd', localInput(t.fixedEnd || at(addDays(now, 1), '11:00')), 'datetime-local')}</div></div></div>`;
 }
 export function routineForm(r = {}, now) {
-  return `<div class="form-grid"><label class="full">루틴 이름<input name="title" value="${esc(r.title || '')}" required maxlength="120"></label>${select(
+  return `<div class="form-grid"><label class="full">루틴 이름<input name="title" value="${esc(r.title || '')}" required maxlength="120"></label>${iconPicker(r.icon)}${select(
     '실행 기준',
     'basis',
     [
@@ -61,7 +62,7 @@ export function routineForm(r = {}, now) {
   )}${input('주기 기준일', 'anchorDate', r.anchorDate || day(now), 'date', 'required')}<div class="full" data-condition="frequency:WINDOW"><div class="form-grid">${input('N일', 'everyDays', r.everyDays || 7, 'number', 'min="1" max="365"')}${input('M회', 'times', r.times || 3, 'number', 'min="1" max="365"')}</div></div><div class="full" data-condition="frequency:WEEKDAYS">${weekdays(r.weekdays || [1, 3, 5])}</div></div>`;
 }
 export function fixedForm(o = {}, now) {
-  return `<div class="form-grid"><label class="full">일정 이름<input name="title" value="${esc(o.title || '')}" required maxlength="120"></label>${input('시작', 'start', localInput(o.plannedStart || at(addDays(now, 1), '13:00')), 'datetime-local', 'required')}${input('종료', 'end', localInput(o.plannedEnd || at(addDays(now, 1), '14:00')), 'datetime-local', 'required')}${
+  return `<div class="form-grid"><label class="full">일정 이름<input name="title" value="${esc(o.title || '')}" required maxlength="120"></label>${iconPicker(o.icon)}${input('시작', 'start', localInput(o.plannedStart || at(addDays(now, 1), '13:00')), 'datetime-local', 'required')}${input('종료', 'end', localInput(o.plannedEnd || at(addDays(now, 1), '14:00')), 'datetime-local', 'required')}${
     o.id
       ? select(
           '적용 범위',
@@ -92,7 +93,7 @@ export function finishForm(e, now, outcome, draft = {}) {
   return `<p class="intro-note">${intro}</p><input type="hidden" name="outcome" value="${outcome}"><div class="form-grid">${input('실제 시작', 'actualStart', draft.actualStart || preciseLocalInput(e.startedAt), 'datetime-local', 'step="1" required')}${input('실제 종료', 'actualEnd', draft.actualEnd || preciseLocalInput(now), 'datetime-local', 'step="1" required')}${focus ? input('확인한 집중 시간 (분)', 'confirmedFocusMin', draft.confirmedFocusMin ?? Math.floor((e.measuredFocusMin || 0) * 10) / 10, 'number', 'min="0" step="0.1" required') : ''}${outcome === 'INCOMPLETE' && e.sourceType === 'TODO' ? input('집중 시간이 남은 예상시간 이상이면 추가로 필요한 시간 (분)', 'additionalMin', draft.additionalMin || '', 'number', 'min="1"') : ''}${e.sourceType === 'TODO' && outcome === 'DONE' ? '<p class="intro-note">이 블록에 배정된 ' + e.assignedWorkMin + '분의 작업량을 완료 처리합니다. 다른 블록의 남은 작업은 유지됩니다.</p>' : ''}<label class="full"><input style="width:auto" name="recordTimeline" type="checkbox" ${draft.recordTimeline === false ? '' : 'checked'}> 위 실제 구간을 생활 기록에 남기기</label></div>`;
 }
 export function timelineForm(t = {}, now) {
-  return `<p class="intro-note">생활 기록만 수정합니다. 작업 성과와 남은 요구량은 바뀌지 않아요.</p><div class="form-grid"><label class="full">활동 이름<input name="title" value="${esc(t.title || '')}" maxlength="120"></label>${input('시작', 'start', localInput(t.start || now - 60 * 60000), 'datetime-local', 'required')}${input('종료', 'end', localInput(t.end || now), 'datetime-local', 'required')}${select(
+  return `<p class="intro-note">생활 기록만 수정합니다. 작업 성과와 남은 요구량은 바뀌지 않아요.</p><div class="form-grid"><label class="full">활동 이름<input name="title" value="${esc(t.title || '')}" maxlength="120"></label>${input('시작', 'start', exactLocalInput(t.start || now - 60 * 60000), 'datetime-local', 'step="0.001" required')}${input('종료', 'end', exactLocalInput(t.end || now), 'datetime-local', 'step="0.001" required')}${select(
     '기록 종류',
     'sourceType',
     [

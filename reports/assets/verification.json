@@ -1,0 +1,70 @@
+{
+  "verified": true,
+  "source_images": 86,
+  "webp_files": 620,
+  "categories": {
+    "characters": 8,
+    "borders": 71,
+    "icons": 219,
+    "decorations": 259,
+    "illustrations": 12,
+    "tapes": 10,
+    "stamps": 18,
+    "overlays": 6,
+    "backgrounds": 13,
+    "textures": 4
+  },
+  "total_bytes": 46217482,
+  "review_candidates": 0,
+  "deleted": 86,
+  "corrected_originals": 7,
+  "corrected_outputs": 10,
+  "unchanged_files_verified": 552,
+  "checks": [
+    "all files accounted for",
+    "WebP decode and nonempty alpha",
+    "canvas size and uniform scale",
+    "centered padding",
+    "snake_case names",
+    "source hashes unchanged",
+    "requested deletions absent",
+    "unaffected output hashes unchanged",
+    "8 unit tests passed"
+  ],
+  "latest_import": {
+    "verified": true,
+    "added": 58,
+    "total": 620,
+    "existing_unchanged": 562,
+    "source_folders": {
+      "icons": 30,
+      "날씨overlay_가로": 6,
+      "배경_가로": 5,
+      "배경_세로": 8,
+      "보더라인+코너": 5,
+      "종이텍스처": 4
+    },
+    "checks": [
+      "all imported RGBA pixels match source",
+      "original dimensions preserved",
+      "existing file hashes unchanged"
+    ],
+    "categories": {
+      "characters": 8,
+      "borders": 71,
+      "icons": 219,
+      "decorations": 259,
+      "illustrations": 12,
+      "tapes": 10,
+      "stamps": 18,
+      "overlays": 6,
+      "backgrounds": 13,
+      "textures": 4
+    }
+  },
+  "icon_naming": {
+    "renamed": 190,
+    "all_620_image_bytes_unchanged": true,
+    "tests_passed": 10
+  }
+}

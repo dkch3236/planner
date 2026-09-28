@@ -1,3 +1,6 @@
+import { todayPreview } from './ui/today-preview.js';
+import { loadIcons } from './ui/icons.js';
+import { updateTodayTimers } from './ui/today.js';
 import { createStore } from './state/store.js';
 import { render } from './ui/render.js';
 import { createModals } from './ui/modals.js';
@@ -14,7 +17,9 @@ function toast(message) {
   toastTimer = setTimeout(() => (node.style.display = 'none'), 4500);
 }
 try {
-  const store = createStore(),
+  await loadIcons();
+  const preview = new URLSearchParams(location.search).get('preview') === 'today';
+  const store = createStore(preview ? { initialState: todayPreview() } : {}),
     modals = createModals(store, toast);
   store.subscribe((s) => {
     render(s);
@@ -30,6 +35,9 @@ try {
         now = appNow(s);
       if (modals.handle(d.action, d)) return;
       switch (d.action) {
+        case 'toggle-free':
+          store.ui({ freeCollapsed: !s.ui.freeCollapsed });
+          break;
         case 'nav':
           store.ui({ tab: d.tab });
           break;
@@ -47,6 +55,15 @@ try {
           break;
         case 'history-date':
           store.ui({ historyDate: document.querySelector('#history-date').value });
+          break;
+        case 'week-day':
+          store.ui({weekDay:d.date});
+          break;
+        case 'week-date':
+          store.ui({tab:'week', weekStart:document.querySelector('#week-date').value || null,historyDate:null});
+          break;
+        case 'week-today':
+          store.ui({tab:'week', weekStart:null,historyDate:null});
           break;
         case 'start':
           store.dispatch({ type: 'START', payload: { id: d.id } });
@@ -134,7 +151,8 @@ try {
   setInterval(() => {
     store.tick();
     const s = store.get();
-    const timer = document.querySelector('[data-focus-time]');
+    updateTodayTimers(s, appNow(s));
+    const timer = document.querySelector('.focus-timer [data-focus-time]');
     if (timer && s.execution) timer.textContent = stopwatch(s.execution.measuredFocusMin);
     if (++ticks % 5 === 0) {
       if (

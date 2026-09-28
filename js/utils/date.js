@@ -21,7 +21,12 @@ export const duration = (value) => {
 export const localInput = (t) => `${day(t)}T${time(t)}`;
 export const overlap = (a, b) =>
   ms(a.plannedStart) < ms(b.plannedEnd) && ms(b.plannedStart) < ms(a.plannedEnd);
-export const appNow = (s) => (s.ui.virtualNow ? ms(s.ui.virtualNow) : Date.now());
+export const appNow = (s) =>
+  s.ui.previewClock
+    ? s.ui.previewClock.start + Date.now() - s.ui.previewClock.realStart
+    : s.ui.virtualNow
+      ? ms(s.ui.virtualNow)
+      : Date.now();
 
 export const preciseLocalInput = (t) =>
   localInput(t) + ':' + String(new Date(t).getSeconds()).padStart(2, '0');
@@ -31,3 +36,5 @@ export const stopwatch = (minutes) => {
     .map((x) => String(x).padStart(2, '0'))
     .join(':');
 };
+
+export const exactLocalInput = (t) => preciseLocalInput(t) + '.' + String(new Date(t).getMilliseconds()).padStart(3, '0');

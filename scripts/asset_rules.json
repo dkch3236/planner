@@ -1,0 +1,216 @@
+{
+  "defaults": {
+    "alpha_threshold": 16,
+    "min_component_area": 10,
+    "grouping": "components",
+    "gap": 6
+  },
+  "rules": {
+    "^(character|growth|level|rest)_": {
+      "alpha_threshold": 8,
+      "min_component_area": 20,
+      "grouping": "single"
+    },
+    "^icons_": {
+      "alpha_threshold": 8,
+      "min_component_area": 12,
+      "grouping": "whitespace",
+      "gap": 6
+    },
+    "^corners_borders$": {
+      "alpha_threshold": 16,
+      "min_component_area": 10,
+      "grouping": "regions",
+      "gap": 6,
+      "reference_size": [
+        1536,
+        1024
+      ],
+      "regions": [
+        {
+          "box": [
+            0,
+            0,
+            225,
+            285
+          ],
+          "mode": "single"
+        },
+        {
+          "box": [
+            225,
+            0,
+            399,
+            285
+          ],
+          "mode": "single"
+        },
+        {
+          "box": [
+            399,
+            0,
+            590,
+            285
+          ],
+          "mode": "single"
+        },
+        {
+          "box": [
+            590,
+            0,
+            782,
+            285
+          ],
+          "mode": "single"
+        },
+        {
+          "box": [
+            782,
+            0,
+            994,
+            285
+          ],
+          "mode": "single"
+        },
+        {
+          "box": [
+            994,
+            0,
+            1165,
+            178
+          ],
+          "mode": "single"
+        },
+        {
+          "box": [
+            994,
+            178,
+            1165,
+            285
+          ],
+          "mode": "single"
+        },
+        {
+          "box": [
+            1165,
+            0,
+            1345,
+            178
+          ],
+          "mode": "single"
+        },
+        {
+          "box": [
+            1165,
+            178,
+            1345,
+            285
+          ],
+          "mode": "single"
+        },
+        {
+          "box": [
+            1345,
+            0,
+            1536,
+            178
+          ],
+          "mode": "single"
+        },
+        {
+          "box": [
+            1345,
+            178,
+            1536,
+            285
+          ],
+          "mode": "single"
+        },
+        {
+          "box": [
+            0,
+            285,
+            400,
+            738
+          ],
+          "mode": "rows"
+        },
+        {
+          "box": [
+            400,
+            285,
+            782,
+            738
+          ],
+          "mode": "rows"
+        },
+        {
+          "box": [
+            782,
+            285,
+            993,
+            738
+          ],
+          "mode": "rows"
+        },
+        {
+          "box": [
+            993,
+            285,
+            1165,
+            738
+          ],
+          "mode": "rows"
+        },
+        {
+          "box": [
+            1165,
+            285,
+            1536,
+            738
+          ],
+          "mode": "rows"
+        },
+        {
+          "box": [
+            0,
+            738,
+            1080,
+            1024
+          ],
+          "mode": "components"
+        },
+        {
+          "box": [
+            1080,
+            738,
+            1300,
+            1024
+          ],
+          "mode": "rows"
+        },
+        {
+          "box": [
+            1300,
+            738,
+            1536,
+            1024
+          ],
+          "mode": "rows"
+        }
+      ]
+    },
+    "^tapes$": {
+      "alpha_threshold": 8,
+      "min_component_area": 20,
+      "grouping": "components",
+      "gap": 0
+    },
+    "^tapes_stamps_stickers$": {
+      "alpha_threshold": 48,
+      "min_component_area": 12,
+      "grouping": "components",
+      "gap": 5
+    }
+  }
+}

@@ -22,6 +22,12 @@ http
             '.html': 'text/html; charset=utf-8',
             '.js': 'text/javascript; charset=utf-8',
             '.css': 'text/css; charset=utf-8',
+            '.webp': 'image/webp',
+            '.png': 'image/png',
+            '.jpg': 'image/jpeg',
+            '.woff2': 'font/woff2',
+            '.ttf': 'font/ttf',
+            '.json': 'application/json; charset=utf-8',
           }[extname(path)] || 'text/plain',
       });
       res.end(data);

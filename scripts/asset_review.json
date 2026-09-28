@@ -1,0 +1,363 @@
+{
+  "version": 1,
+  "sources": {
+    "assets/elements_3.png": {
+      "sha256": "cb10fc2460d0656b43066820adecc3c659ef5e4dbaa2a8f493521c1a9eada842",
+      "delete": [
+        1,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        46,
+        63,
+        64,
+        78,
+        80,
+        81,
+        82,
+        83,
+        84,
+        85,
+        88,
+        91,
+        92,
+        93,
+        94,
+        95,
+        96,
+        97,
+        98,
+        99,
+        100,
+        101,
+        102,
+        103,
+        104,
+        105,
+        106,
+        107,
+        108,
+        109,
+        110,
+        111,
+        112,
+        113,
+        114,
+        115,
+        116,
+        119,
+        120,
+        121,
+        122,
+        135,
+        136,
+        139,
+        160,
+        161,
+        162,
+        163,
+        164,
+        165,
+        166,
+        167,
+        168
+      ],
+      "edit": {
+        "69": {
+          "expected_box": [
+            1173,
+            502,
+            1198,
+            548
+          ],
+          "outputs": [
+            {
+              "box": [
+                1173,
+                502,
+                1198,
+                563
+              ],
+              "canvas": [
+                32,
+                48
+              ]
+            }
+          ]
+        },
+        "70": {
+          "expected_box": [
+            972,
+            503,
+            1009,
+            548
+          ],
+          "outputs": [
+            {
+              "box": [
+                972,
+                503,
+                1009,
+                563
+              ],
+              "canvas": [
+                48,
+                48
+              ]
+            }
+          ]
+        },
+        "90": {
+          "expected_box": [
+            1298,
+            641,
+            1506,
+            774
+          ],
+          "outputs": [
+            {
+              "box": [
+                1298,
+                641,
+                1506,
+                774
+              ],
+              "erase": [
+                [
+                  1419,
+                  641,
+                  1506,
+                  693
+                ]
+              ],
+              "canvas": [
+                192,
+                128
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "assets/elements_2.png": {
+      "sha256": "f1c52d8ce2450632bc22724fd350a46943821406c287fe9a7562cce0144f8833",
+      "delete": [
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        24,
+        25,
+        20,
+        21
+      ],
+      "edit": {}
+    },
+    "assets/corners_borders.png": {
+      "sha256": "2aea4762edd09f10ea70b942dc09e20272b4f21a776844b3356c85cf268a4353",
+      "delete": [
+        100
+      ],
+      "edit": {
+        "98": {
+          "expected_box": [
+            27,
+            881,
+            594,
+            977
+          ],
+          "outputs": [
+            {
+              "box": [
+                27,
+                881,
+                594,
+                977
+              ],
+              "largest": true,
+              "threshold": 24,
+              "canvas": [
+                512,
+                88
+              ]
+            }
+          ]
+        },
+        "97": {
+          "expected_box": [
+            606,
+            878,
+            1071,
+            977
+          ],
+          "outputs": [
+            {
+              "box": [
+                606,
+                897,
+                776,
+                977
+              ],
+              "largest": true,
+              "threshold": 24,
+              "path": "borders/border_corners_borders_097_left.webp"
+            },
+            {
+              "box": [
+                776,
+                878,
+                1071,
+                977
+              ],
+              "largest": true,
+              "threshold": 24,
+              "path": "borders/border_corners_borders_097_right.webp"
+            }
+          ]
+        }
+      }
+    },
+    "assets/tapes_stamps_stickers.png": {
+      "sha256": "b0182c2383c64c2a9b82eeb4926a42c3c85a2ac8aef2155ce1fde375399133a4",
+      "delete": [],
+      "edit": {
+        "25": {
+          "expected_box": [
+            383,
+            257,
+            611,
+            406
+          ],
+          "outputs": [
+            {
+              "box": [
+                383,
+                257,
+                495,
+                406
+              ],
+              "largest": true,
+              "threshold": 48,
+              "path": "decorations/decoration_tapes_stamps_stickers_025_left.webp"
+            },
+            {
+              "box": [
+                495,
+                257,
+                611,
+                406
+              ],
+              "largest": true,
+              "threshold": 48,
+              "path": "decorations/decoration_tapes_stamps_stickers_025_right.webp"
+            }
+          ]
+        },
+        "71": {
+          "expected_box": [
+            701,
+            800,
+            1242,
+            1003
+          ],
+          "outputs": [
+            {
+              "box": [
+                701,
+                800,
+                1043,
+                1003
+              ],
+              "largest": true,
+              "threshold": 48,
+              "polygon": [
+                [
+                  701,
+                  800
+                ],
+                [
+                  1043,
+                  800
+                ],
+                [
+                  1040,
+                  850
+                ],
+                [
+                  1033,
+                  890
+                ],
+                [
+                  1027,
+                  1003
+                ],
+                [
+                  701,
+                  1003
+                ]
+              ],
+              "path": "decorations/decoration_tapes_stamps_stickers_071_left.webp"
+            },
+            {
+              "box": [
+                1027,
+                817,
+                1242,
+                1003
+              ],
+              "largest": true,
+              "threshold": 48,
+              "polygon": [
+                [
+                  1043,
+                  817
+                ],
+                [
+                  1242,
+                  817
+                ],
+                [
+                  1242,
+                  1003
+                ],
+                [
+                  1027,
+                  1003
+                ],
+                [
+                  1033,
+                  890
+                ],
+                [
+                  1040,
+                  850
+                ]
+              ],
+              "path": "decorations/decoration_tapes_stamps_stickers_071_right.webp"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

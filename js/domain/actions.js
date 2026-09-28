@@ -37,7 +37,7 @@ function validateSource(v, type) {
 export function applyAction(state, action, now, realNow = Date.now()) {
   const s = structuredClone(state),
     p = action.payload || {};
-  settleFocus(s.execution, realNow);
+  settleFocus(s.execution, realNow, now);
   reconcile(s, now);
   switch (action.type) {
     case 'SAVE_TODO': {
@@ -74,6 +74,7 @@ export function applyAction(state, action, now, realNow = Date.now()) {
       s.fixedSeries.push({
         id: id(),
         title: p.title,
+        icon: p.icon || '',
         startDate: day(p.start),
         startTime: time(p.start),
         endTime: time(p.end),
@@ -115,10 +116,26 @@ export function applyAction(state, action, now, realNow = Date.now()) {
       break;
     }
     case 'UNAVAILABLE': {
-      const source = (p.sourceType === 'TODO' ? s.todos : s.routines).find((x) => x.id === p.id);
-      source.unavailableDates = [...(source.unavailableDates || []), day(now)];
+      const collection = p.sourceType === 'TODO' ? s.todos : s.routines;
+      if (!collection.some(x=>x.id===p.id)) throw Error('할 일 또는 루틴을 찾을 수 없습니다.');
+      const ids = new Set([p.id]);
+      if (p.sourceType === 'TODO') {
+        let added = true;
+        while(added) {
+          added = false;
+          for(const t of collection) if(ids.has(t.parentId)&&!ids.has(t.id)){ids.add(t.id);added=true;}
+        }
+      }
+      if (!p.restore && ids.has(s.execution?.sourceId)) {
+        if (!p.finish) throw Error('진행 중인 활동의 종료 내용을 먼저 확인해 주세요.');
+        finishExecution(s,{...p.finish,outcome:'INCOMPLETE'},now);
+      }
+      for(const source of collection.filter(x=>ids.has(x.id))) {
+        source.unavailableDates = (source.unavailableDates || []).filter(d=>d!==day(now));
+        if(!p.restore) source.unavailableDates.push(day(now));
+      }
       s.livePlan = s.livePlan.filter(
-        (b) => b.sourceId !== p.id || day(b.plannedStart || `${b.date}T12:00`) !== day(now),
+        (b) => !ids.has(b.sourceId) || day(b.plannedStart || `${b.date}T12:00`) !== day(now),
       );
       break;
     }
@@ -138,7 +155,7 @@ export function applyAction(state, action, now, realNow = Date.now()) {
       break;
     }
     case 'TOGGLE_FOCUS':
-      toggleFocus(s.execution, realNow);
+      toggleFocus(s.execution, realNow, now);
       return s;
     case 'FINISH':
       finishExecution(s, p, now);

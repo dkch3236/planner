@@ -1,7 +1,7 @@
 import { day, addDays, at, iso, ms, id, MIN } from '../utils/date.js';
-export function materialize(s, now) {
+export function materialize(s, now, rangeStart = now) {
   for (let i = -1; i < 7; i++) {
-    const d = addDays(now, i);
+    const d = addDays(rangeStart, i);
     if (!s.sleepOccurrences.some((o) => o.date === d)) {
       const template = s.settings.sleepTemplate;
       const start = at(d, template.start),
@@ -33,6 +33,7 @@ export function materialize(s, now) {
           seriesId: series.id,
           date: d,
           title: series.title,
+          icon: series.icon || '',
           plannedStart: iso(at(d, series.startTime)),
           plannedEnd: iso(
             series.durationMin
@@ -61,6 +62,7 @@ export function editFixed(s, occurrence, values, scope) {
       until: null,
       startDate: occurrence.date,
       title: values.title,
+      icon: values.icon ?? series.icon ?? '',
       startTime: new Date(values.plannedStart).toTimeString().slice(0, 5),
       endTime: new Date(values.plannedEnd).toTimeString().slice(0, 5),
       durationMin: (ms(values.plannedEnd) - ms(values.plannedStart)) / MIN,

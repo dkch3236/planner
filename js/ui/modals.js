@@ -58,6 +58,7 @@ export function createModals(store, toast) {
             parentId: source.parentId || parentId,
           });
         close();
+        if(type === 'FIXED') store.ui({tab:'week',weekStart:day(data.start),historyDate:null});
         toast('저장하고 미래 계획을 조정했어요.');
       },
     );
@@ -140,7 +141,7 @@ export function createModals(store, toast) {
         .map((x) => button(esc(x.title), 'todo-detail', `data-id="${x.id}"`, 'candidate'))
         .join(
           '',
-        )}${button('＋ 하위 할 일 추가', 'child', `data-id="${t.id}"`, 'text-button')}<h3 class="section-title">정보</h3><p class="intro-note">${day(t.deadline)} 마감 · ${readable(t.importance)} · 하고 싶은 정도 ${t.desire}/5 · ${readable(t.timeConstraint)}</p><h3 class="section-title">편집</h3><div class="actions">${button('정보 수정', 'edit-todo', `data-id="${t.id}"`)}${button('오늘 수행 어려움', 'unavailable', `data-id="${t.id}" data-type="TODO"`)}${button('할 일 취소', 'cancel-todo', `data-id="${t.id}"`, 'btn danger')}</div>`,
+        )}${button('＋ 하위 할 일 추가', 'child', `data-id="${t.id}"`, 'text-button')}<h3 class="section-title">정보</h3><p class="intro-note">${day(t.deadline)} 마감 · ${readable(t.importance)} · 하고 싶은 정도 ${t.desire}/5 · ${readable(t.timeConstraint)}</p><h3 class="section-title">편집</h3><div class="actions">${button('정보 수정', 'edit-todo', `data-id="${t.id}"`)}${button(t.unavailableDates?.includes(day(appNow(s))) ? '오늘 다시 할래요' : '오늘은 안 할래요', 'unavailable', `data-id="${t.id}" data-type="TODO" data-restore="${!!t.unavailableDates?.includes(day(appNow(s)))}"`)}${button('할 일 취소', 'cancel-todo', `data-id="${t.id}"`, 'btn danger')}</div>`,
     );
   }
   function timeline(recordId, preset = {}) {
@@ -187,7 +188,7 @@ export function createModals(store, toast) {
     if (!b) return;
     show(
       b.title,
-      `<p class="intro-note">${b.plannedStart ? `${day(b.plannedStart)} ${time(b.plannedStart)} – ${time(b.plannedEnd)}` : b.date + ' · 날짜만 배정'}${b.assignedWorkMin ? `<br>할당 작업 ${b.assignedWorkMin}분 / 예약 ${b.reservedMin}분` : ''}</p><div class="actions">${['TODO', 'ROUTINE'].includes(b.sourceType) && b.plannedStart ? button(b.locked ? '잠금 해제' : '이 블록 잠그기', 'lock', `data-id="${b.id}"`) : ''}${b.sourceType === 'TODO' ? button('할 일 상세', 'todo-detail', `data-id="${b.sourceId}"`) : ''}${b.sourceType === 'FIXED' ? button('일정 편집', 'edit-fixed', `data-id="${b.sourceId}"`) : ''}${['TODO', 'ROUTINE'].includes(b.sourceType) ? button('지금 가능한 작업 보기', 'candidates', 'data-mode="PULL_FROM_FREE"') : ''}${b.sourceType === 'FREE' ? button('보상활동 계획', 'reward') : ''}</div>`,
+      `<p class="intro-note">${b.plannedStart ? `${day(b.plannedStart)} ${time(b.plannedStart)} – ${time(b.plannedEnd)}` : b.date + ' · 날짜만 배정'}${b.assignedWorkMin ? `<br>할당 작업 ${b.assignedWorkMin}분 / 예약 ${b.reservedMin}분` : ''}</p><div class="actions">${['TODO', 'ROUTINE'].includes(b.sourceType) && b.plannedStart ? button(b.locked ? '잠금 해제' : '이 블록 잠그기', 'lock', `data-id="${b.id}"`) : ''}${b.sourceType === 'TODO' ? button('할 일 상세', 'todo-detail', `data-id="${b.sourceId}"`) : ''}${b.sourceType === 'FIXED' ? button('일정 편집', 'edit-fixed', `data-id="${b.sourceId}"`) : ''}${['TODO', 'ROUTINE'].includes(b.sourceType) ? button('지금 가능한 작업 보기', 'candidates', 'data-mode="PULL_FROM_FREE"') : ''}${['TODO','ROUTINE'].includes(b.sourceType) ? button('오늘은 안 할래요', 'unavailable', `data-id="${b.sourceId}" data-type="${b.sourceType}"`) : ''}${b.sourceType === 'FREE' ? button('보상활동 계획', 'reward') : ''}</div>`,
     );
   }
   function handle(action, data) {
@@ -351,11 +352,15 @@ export function createModals(store, toast) {
         dispatch('CANCEL_TODO', { id: data.id });
         close();
         break;
-      case 'unavailable':
-        dispatch('UNAVAILABLE', { id: data.id, sourceType: data.type });
-        close();
-        toast('오늘 수행 기회를 제외했어요.');
+      case 'unavailable': {
+        const payload = {id:data.id, sourceType:data.type, restore:data.restore === 'true'};
+        if (!payload.restore && s.execution?.sourceId === data.id) {
+          show('오늘은 안 할래요', '<p class="intro-note">지금까지의 활동을 기록하고 오늘 남은 배정을 제외합니다.</p>' + finishForm(s.execution, appNow(s), 'INCOMPLETE'), values=>{
+            dispatch('UNAVAILABLE',{...payload,finish:values}); close(); toast('오늘 남은 배정을 제외했습니다.');
+          });
+        } else { dispatch('UNAVAILABLE',payload); close(); toast(payload.restore?'오늘 배정에 다시 포함했습니다.':'오늘 남은 배정을 제외했습니다.'); }
         break;
+      }
       case 'delete-fixed':
         dispatch('DELETE_FIXED', {
           id: data.id,
