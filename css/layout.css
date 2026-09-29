@@ -120,6 +120,22 @@
   color: #315b3e;
   font-weight: 700;
 }
+.nav-icon {
+  width: 25px;
+  height: 25px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+@media (max-width: 480px) {
+  .bottom-nav {
+    max-width: calc(100% - 16px);
+  }
+  .bottom-nav button {
+    min-width: 0;
+    flex: 1;
+    white-space: nowrap;
+  }
+}
 .fab {
   position: fixed;
   right: 43px;
@@ -256,5 +272,10 @@
   }
   .clock-panel .clock-label {
     width: 100%;
+  }
+}
+@media (max-width: 480px) {
+  .bottom-nav button {
+    min-width: 0;
   }
 }

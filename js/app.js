@@ -1,4 +1,5 @@
 import { todayPreview } from './ui/today-preview.js';
+import { managePreview } from './ui/manage-preview.js';
 import { loadIcons } from './ui/icons.js';
 import { updateTodayTimers } from './ui/today.js';
 import { createStore } from './state/store.js';
@@ -18,8 +19,10 @@ function toast(message) {
 }
 try {
   await loadIcons();
-  const preview = new URLSearchParams(location.search).get('preview') === 'today';
-  const store = createStore(preview ? { initialState: todayPreview() } : {}),
+  const preview = new URLSearchParams(location.search).get('preview');
+  const initialState =
+    preview === 'today' ? todayPreview() : preview === 'manage' ? managePreview() : null;
+  const store = createStore(initialState ? { initialState } : {}),
     modals = createModals(store, toast);
   store.subscribe((s) => {
     render(s);
@@ -49,6 +52,9 @@ try {
           break;
         case 'todo-filter':
           store.ui({ completed: d.completed === 'true' });
+          break;
+        case 'toggle-todo':
+          store.ui({ todoExpanded: { ...s.ui.todoExpanded, [d.id]: d.expanded !== 'true' } });
           break;
         case 'toggle-focus':
           store.dispatch({ type: 'TOGGLE_FOCUS' });

@@ -23,8 +23,8 @@ export function backgroundFor(now) {
   return `backgrounds/landscape/background_landscape_${period}.webp`;
 }
 
-const picture = (path, cls = '') =>
-  `<img class="${cls}" src="${asset(path)}" alt="" draggable="false">`;
+const picture = (path, cls = '', attrs = '') =>
+  `<img class="${cls}" src="${asset(path)}" alt="" draggable="false" ${attrs}>`;
 export const clockDuration = (minutes) => {
   const seconds = Math.floor(Math.max(0, minutes) * 60);
   return `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
@@ -51,7 +51,7 @@ export function progressModel(e, now) {
     cursor: percent(now),
     elapsed: Math.max(0, (now - start) / MIN),
     remaining: (end - now) / MIN,
-    segments: (e.focusIntervals || [])
+    segments: (e.focusLike === false ? [{ start, end: now }] : e.focusIntervals || [])
       .map((r) => ({ left: percent(r.start), right: percent(Math.min(r.end, now)) }))
       .filter((r) => r.right > r.left),
   };
@@ -75,7 +75,7 @@ function runningCard(s, now) {
   const finishLabel = e.sourceType === 'SLEEP' ? '일어났어요' : '다했어요';
   return `<section class="paper-current" aria-label="현재 일정">
     ${e.focusLike ? `<button class="focus-control" data-action="toggle-focus" aria-label="${running ? '집중 타이머 일시정지' : '집중 타이머 다시 시작'}"><span class="${running ? 'pause-symbol' : 'play-symbol'}" aria-hidden="true"></span></button>` : ''}
-    <div class="paper-current-heading">${picture(sourceIcon(s, e) || activityIcon(e.title, e.sourceType), 'activity-illustration')}<div class="current-title"><p>현재 일정</p><h1>${esc(e.title)}</h1></div><div class="planned-info">예정: ${time(e.plannedStart || e.startedAt)}–${time(e.plannedEnd || e.expectedEnd)}<br>${e.focusLike ? `집중 ${e.assignedWorkMin}분 / ` : ''}총 ${e.reservedMin}분</div></div>
+    <div class="paper-current-heading">${picture(sourceIcon(s, e) || activityIcon(e.title, e.sourceType), 'activity-illustration', `data-motion="activity" data-running="${gardenRunning(s)}"`)}<div class="current-title"><p>현재 일정</p><h1>${esc(e.title)}</h1></div><div class="planned-info">예정: ${time(e.plannedStart || e.startedAt)}<span class="planned-time-separator"> - </span>${time(e.plannedEnd || e.expectedEnd)}<br>${e.focusLike ? `집중 ${e.assignedWorkMin}분 / ` : ''}총 ${e.reservedMin}분</div></div>
     <div data-today-timers>${timerMarkup(e, now)}</div>
     <div class="paper-actions">${e.sourceType !== 'SLEEP' ? '<button data-action="switch" class="paper-button switch">작업 전환</button>' : ''}<button data-action="finish" data-outcome="DONE" class="paper-button done">${finishLabel}</button>
     ${e.sourceType !== 'SLEEP' ? `<button data-action="finish" data-outcome="${e.focusLike ? 'INCOMPLETE' : e.sourceType === 'FIXED' ? 'MISSED' : 'DONE'}" class="paper-button stop">${e.sourceType === 'FIXED' ? '일정 못 했어요' : '그만할래요'}</button>` : ''}</div>
@@ -85,6 +85,12 @@ function runningCard(s, now) {
   </section>`;
 }
 const statTime = (n) => `<strong>${Math.floor(n / 60)}시간<br>${Math.floor(n % 60)}분</strong>`;
+export const gardenRunning = (s) =>
+  !!(s.execution?.focusLike && s.execution.timerStatus === 'RUNNING');
+function atmosphere(s, now) {
+  const night = /_(night|evening)\./.test(backgroundFor(now));
+  return `<div class="garden-atmosphere ${night ? 'night' : 'day'}" data-running="${gardenRunning(s)}" aria-hidden="true">${Array.from({ length: 8 }, (_, i) => `<i data-motion="${i}" class="garden-motion ${i < 2 ? 'drifting-cloud' : i < 5 ? 'floating-petal' : 'drifting-star'}" style="--i:${i}"></i>`).join('')}</div>`;
+}
 export function paperToday(s, now, fallback) {
   const blocks = s.livePlan.filter(
     (b) =>
@@ -100,7 +106,7 @@ export function paperToday(s, now, fallback) {
   const collapsed = !!s.ui.freeCollapsed;
   const routines = s.routines.filter((r) => r.status === 'ACTIVE');
   return `<div class="paper-today">
-    <div class="garden-hero" style="background-image:url('${asset(backgroundFor(now))}')">${s.ui.previewClock ? '<p class="preview-note">시안 미리보기<br><small>변경사항은 저장되지 않습니다</small></p>' : ''}<button class="notification-note" data-action="unconfirmed" aria-label="미확인 기록 ${s.unconfirmed.length}개"><strong>알림</strong><span>${s.unconfirmed.length}개</span></button>
+    <div class="garden-hero" style="background-image:url('${asset(backgroundFor(now))}')">${atmosphere(s, now)}${s.ui.previewClock ? '<p class="preview-note">시안 미리보기<br><small>변경사항은 저장되지 않습니다</small></p>' : ''}<button class="notification-note" data-action="unconfirmed" aria-label="미확인 기록 ${s.unconfirmed.length}개"><strong>알림</strong><span>${s.unconfirmed.length}개</span></button>
     ${s.execution ? runningCard(s, now) : `<section class="paper-current idle-current">${fallback}</section>`}
     ${picture('borders/border_corners_borders_098.webp', 'garden-border')}</div>
     <div class="paper-content"><section class="leisure-section" aria-labelledby="leisure-heading"><div class="paper-section-heading"><h2 id="leisure-heading"><button data-action="toggle-free" aria-expanded="${!collapsed}" aria-controls="leisure-stats">오늘의 여유시간 <span aria-hidden="true">${collapsed ? '▸' : '▾'}</span></button></h2><span class="paper-stars" aria-hidden="true">✦ ✦ ✦</span></div>
@@ -111,6 +117,10 @@ export function paperToday(s, now, fallback) {
     </div></div>`;
 }
 export function updateTodayTimers(s, now) {
+  const activity = document.querySelector('.activity-illustration[data-motion]');
+  if (activity) activity.dataset.running = String(gardenRunning(s));
+  const sky = document.querySelector('.garden-atmosphere');
+  if (sky) sky.dataset.running = String(gardenRunning(s));
   const target = document.querySelector('[data-today-timers]');
   if (target && s.execution) target.innerHTML = timerMarkup(s.execution, now);
   const control = document.querySelector('.focus-control');

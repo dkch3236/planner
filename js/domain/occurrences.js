@@ -72,14 +72,27 @@ export function fixedManagementEntries(s, now) {
   );
 }
 export function materialize(s, now, rangeStart = now) {
+  // A completed sleep entirely before its reserved interval did not consume that night.
+  // Keep its id and history, but remove it from the scheduled-cycle identity.
+  for (const o of s.sleepOccurrences) {
+    if (o.title === '추가 수면') o.kind = 'EXTRA';
+    if (
+      o.kind !== 'EXTRA' &&
+      o.status === 'CLOSED' &&
+      o.actualEnd &&
+      ms(o.actualEnd) <= ms(o.plannedStart)
+    )
+      o.kind = 'EXTRA';
+  }
   for (let i = -1; i < 7; i++) {
     const d = addDays(rangeStart, i);
-    if (!s.sleepOccurrences.some((o) => o.date === d)) {
+    if (!s.sleepOccurrences.some((o) => o.kind !== 'EXTRA' && day(o.plannedStart) === d)) {
       const template = s.settings.sleepTemplate;
       const start = at(d, template.start),
         end = at(template.end <= template.start ? addDays(d, 1) : d, template.end);
       s.sleepOccurrences.push({
-        id: `sleep-${d}`,
+        id: s.sleepOccurrences.some((o) => o.id === `sleep-${d}`) ? id() : `sleep-${d}`,
+        kind: 'SCHEDULED',
         date: d,
         title: '수면',
         plannedStart: iso(start),

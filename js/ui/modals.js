@@ -252,6 +252,15 @@ export function createModals(store, toast) {
           s.routines.find((t) => t.id === data.id),
         );
         break;
+      case 'routine-detail': {
+        const r = s.routines.find((x) => x.id === data.id);
+        const excluded = !!r.unavailableDates?.includes(day(appNow(s)));
+        show(
+          r.title,
+          `<p class="intro-note">예상시간 ${duration(r.duration)} · 최소버전 ${duration(r.minimum)}</p><div class="actions">${button('정보 수정', 'edit-routine', `data-id="${r.id}"`)}${button(excluded ? '오늘 다시 할래요' : '오늘은 안 할래요', 'unavailable', `data-id="${r.id}" data-type="ROUTINE" data-restore="${excluded}"`)}</div>`,
+        );
+        break;
+      }
       case 'edit-fixed':
         sourceForm(
           'FIXED',

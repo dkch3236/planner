@@ -1,11 +1,8 @@
-import { sourceIcon, validIcon } from './icons.js';
+import { sourceIcon } from './icons.js';
 import { paperToday } from './today.js';
 import { day, addDays, at, ms, time, duration, stopwatch, MIN } from '../utils/date.js';
 import { resolveCurrentView } from '../scheduler/currentView.js';
-import { depth, progress } from '../domain/todo.js';
 import { gaps } from '../scheduler/availability.js';
-import { fixedManagementEntries } from '../domain/occurrences.js';
-import { isRewardTodo } from '../domain/preferences.js';
 export const esc = (v) =>
   String(v ?? '').replace(
     /[&<>"']/g,
@@ -110,49 +107,7 @@ export function current(s, now) {
 export function today(s, now) {
   return paperToday(s, now, current(s, now));
 }
-export function manage(s, now) {
-  const tab = s.ui.manage;
-  let body;
-  if (tab === 'todos') {
-    const list = s.todos.filter((t) =>
-      s.ui.completed ? t.status === 'COMPLETED' : t.status === 'ACTIVE',
-    );
-    body = `<div class="tabs">${button('진행 중', 'todo-filter', 'data-completed="false"', s.ui.completed ? '' : 'active')}${button('완료한 할 일', 'todo-filter', 'data-completed="true"', s.ui.completed ? 'active' : '')}</div>${
-      list
-        .map((t) => {
-          const p = progress(s.todos, t);
-          return `<div class="todo-row" style="padding-left:${12 + depth(s.todos, t) * 24}px"><span class="muted">${t.parentId ? '↳' : '○'}</span><button class="todo-title" data-action="todo-detail" data-id="${t.id}">${esc(t.title)}<small style="display:block;margin-top:8px">${day(t.deadline)}까지 · ${duration(p.remaining)} 남음${isRewardTodo(t) ? ' · 보상활동 후보' : ''}</small></button><span class="pill">${readable(t.importance)}</span></div>`;
-        })
-        .join('') || '<div class="empty">이 목록에 표시할 할 일이 없습니다.</div>'
-    }`;
-  } else if (tab === 'routines') {
-    body =
-      s.routines
-        .filter((r) => r.status === 'ACTIVE')
-        .map(
-          (r) =>
-            `<div class="todo-row"><div><h3>${esc(r.title)}</h3><small>${readable(r.basis)} · ${duration(r.duration)} · ${r.frequency === 'DAILY' ? '매일 1회' : r.frequency === 'WEEKLY_COUNT' ? `매주 ${r.times}회` : r.frequency === 'WINDOW' ? `${r.everyDays}일 / ${r.times}회` : '요일 지정'}${r.availableWeekdays && ['WINDOW', 'WEEKLY_COUNT'].includes(r.frequency) ? ' · ' + r.availableWeekdays.map((d) => '일월화수목금토'[d]).join('·') : ''} · ${readable(r.constraint)}</small></div><div>${button(r.unavailableDates?.includes(day(now)) ? '오늘 다시 할래요' : '오늘은 안 할래요', 'unavailable', `data-id="${r.id}" data-type="ROUTINE" data-restore="${!!r.unavailableDates?.includes(day(now))}"`, 'text-button')}${button('편집', 'edit-routine', `data-id="${r.id}"`, 'btn')}</div></div>`,
-        )
-        .join('') || '<p class="empty">루틴을 추가해 보세요.</p>';
-  } else {
-    body =
-      fixedManagementEntries(s, now)
-        .map(
-          ({ series, occurrence: o }) =>
-            `<div class="todo-row"><div><h3>${esc(series.recurrence === 'ONCE' ? o.title : series.title)}</h3><small>${series.recurrence === 'DAILY' ? '매일' : series.recurrence === 'WEEKLY' ? '매주 ' + series.weekdays.map((d) => '일월화수목금토'[d]).join('·') : '한 번'} · ${series.startTime} – ${series.endTime}<br>다음 일정 ${day(o.plannedStart)}</small></div>${button('수정 / 삭제', series.id ? 'edit-fixed-series' : 'edit-fixed', `data-id="${series.id || o.id}"`, 'btn')}</div>`,
-        )
-        .join('') || '<p class="empty">고정된 약속이 없어요.</p>';
-  }
-  return `<div class="manage-layout"><div class="side-tabs">${[
-    ['todos', '할 일'],
-    ['routines', '루틴'],
-    ['fixed', '고정일정'],
-  ]
-    .map(([key, title]) =>
-      button(title, 'manage-tab', `data-tab="${key}"`, tab === key ? 'active' : ''),
-    )
-    .join('')}</div><section class="panel">${body}</section></div>`;
-}
+export { paperManage as manage } from './manage.js';
 export function week(s, now) {
   const weekStart = s.ui.weekStart || day(now);
   const selected =

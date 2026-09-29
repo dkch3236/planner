@@ -59,6 +59,29 @@ test('rest has no focus measurement or pause control, and titles are escaped', (
   assert.doesNotMatch(html, /data-action="toggle-focus"|data-focus-time/);
   assert.match(html, /&lt;img onerror=x&gt;/);
 });
+
+test('non-focus activity fills elapsed time continuously without inventing focus intervals', () => {
+  const s = todayPreview(),
+    e = s.execution,
+    start = Date.parse(e.startedAt);
+  e.focusLike = false;
+  e.sourceType = 'SLEEP';
+  e.focusIntervals = [];
+  e.expectedEnd = new Date(start + 60 * MIN).toISOString();
+  assert.deepEqual(progressModel(e, start + 30 * MIN).segments, [{ left: 0, right: 50 }]);
+  assert.deepEqual(e.focusIntervals, []);
+  assert.doesNotMatch(timerMarkup(e, start + 30 * MIN), /data-focus-time/);
+});
+
+test('garden motion follows focus execution state and remains paused for rest', () => {
+  const s = todayPreview();
+  assert.match(paperToday(s, appNow(s), ''), /data-running="true"/);
+  s.execution.timerStatus = 'PAUSED';
+  assert.match(paperToday(s, appNow(s), ''), /data-running="false"/);
+  s.execution.timerStatus = 'RUNNING';
+  s.execution.focusLike = false;
+  assert.match(paperToday(s, appNow(s), ''), /data-running="false"/);
+});
 test('preview is memory-only even when actions or preferences change', () => {
   const existing = globalThis.localStorage;
   globalThis.localStorage = {

@@ -217,13 +217,13 @@ export function applyAction(state, action, now, realNow = Date.now()) {
     case 'SLEEP': {
       if (s.execution && !s.execution.focusLike) finishExecution(s, { outcome: 'DONE' }, now);
       if (s.execution) throw Error('진행 중인 활동을 먼저 마쳐 주세요.');
-      let o =
-        s.sleepOccurrences.find(
-          (o) => o.status === 'PLANNED' && ms(o.plannedStart) <= now && ms(o.plannedEnd) > now,
-        ) || s.sleepOccurrences.find((o) => o.date === day(now) && o.status === 'PLANNED');
+      let o = s.sleepOccurrences.find(
+        (o) => o.status === 'PLANNED' && ms(o.plannedStart) <= now && ms(o.plannedEnd) > now,
+      );
       if (!o) {
         o = {
           id: id(),
+          kind: 'EXTRA',
           date: day(now),
           title: '추가 수면',
           plannedStart: iso(now),
